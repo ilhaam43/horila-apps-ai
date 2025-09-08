@@ -1,0 +1,243 @@
+{% extends "budget/base_budget.html" %}
+{% load static %}
+{% load i18n %}
+{% load budget_filters %}
+
+{% block title %}{{ budget_plan.name }} - {% trans "Budget Plan Details" %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2>{{ budget_plan.name }}</h2>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a href="{% url 'budget:dashboard' %}">{% trans "Budget" %}</a></li>
+                            <li class="breadcrumb-item"><a href="{% url 'budget:plan_list' %}">{% trans "Budget Plans" %}</a></li>
+                            <li class="breadcrumb-item active">{{ budget_plan.name }}</li>
+                        </ol>
+                    </nav>
+                </div>
+                <div>
+                    <a href="{% url 'budget:plan_edit' budget_plan.pk %}" class="btn btn-primary">
+                        <i class="fas fa-edit"></i> {% trans "Edit" %}
+                    </a>
+                    <a href="{% url 'budget:plan_list' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> {% trans "Back to List" %}
+                    </a>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Budget Plan Information -->
+                <div class="col-lg-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">{% trans "Budget Plan Information" %}</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <dl class="row">
+                                        <dt class="col-sm-4">{% trans "Name" %}:</dt>
+                                        <dd class="col-sm-8">{{ budget_plan.name }}</dd>
+                                        
+                                        <dt class="col-sm-4">{% trans "Category" %}:</dt>
+                                        <dd class="col-sm-8">{{ budget_plan.category.name|default:"-" }}</dd>
+                                        
+                                        <dt class="col-sm-4">{% trans "Status" %}:</dt>
+                                        <dd class="col-sm-8">
+                                            <span class="badge 
+                                                {% if budget_plan.status == 'active' %}bg-success
+                                                {% elif budget_plan.status == 'draft' %}bg-secondary
+                                                {% elif budget_plan.status == 'completed' %}bg-primary
+                                                {% elif budget_plan.status == 'cancelled' %}bg-danger
+                                                {% else %}bg-light text-dark{% endif %}">
+                                                {{ budget_plan.get_status_display }}
+                                            </span>
+                                        </dd>
+                                        
+                                        <dt class="col-sm-4">{% trans "Period" %}:</dt>
+                                        <dd class="col-sm-8">
+                                            {{ budget_plan.start_date|date:"M d, Y" }} - {{ budget_plan.end_date|date:"M d, Y" }}
+                                        </dd>
+                                    </dl>
+                                </div>
+                                <div class="col-md-6">
+                                    <dl class="row">
+                                        <dt class="col-sm-4">{% trans "Created By" %}:</dt>
+                                        <dd class="col-sm-8">{{ budget_plan.created_by.employee_first_name }} {{ budget_plan.created_by.employee_last_name|default:budget_plan.created_by.badge_id }}</dd>
+                                        
+                                        <dt class="col-sm-4">{% trans "Created At" %}:</dt>
+                                        <dd class="col-sm-8">{{ budget_plan.created_at|date:"M d, Y H:i" }}</dd>
+                                        
+                                        {% if budget_plan.approved_by %}
+                                        <dt class="col-sm-4">{% trans "Approved By" %}:</dt>
+                                        <dd class="col-sm-8">{% if budget_plan.approved_by %}{{ budget_plan.approved_by.employee_first_name }} {{ budget_plan.approved_by.employee_last_name|default:budget_plan.approved_by.badge_id }}{% else %}-{% endif %}</dd>
+                                        
+                                        <dt class="col-sm-4">{% trans "Approved At" %}:</dt>
+                                        <dd class="col-sm-8">{{ budget_plan.approved_at|date:"M d, Y H:i" }}</dd>
+                                        {% endif %}
+                                    </dl>
+                                </div>
+                            </div>
+                            
+                            {% if budget_plan.description %}
+                            <div class="row mt-3">
+                                <div class="col-12">
+                                    <h6>{% trans "Description" %}</h6>
+                                    <p class="text-muted">{{ budget_plan.description|linebreaks }}</p>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Budget Summary -->
+                <div class="col-lg-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">{% trans "Budget Summary" %}</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between">
+                                    <span>{% trans "Allocated Amount" %}</span>
+                                    <strong class="text-primary">{{ budget_plan.allocated_amount|currency_format }}</strong>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between">
+                                    <span>{% trans "Spent Amount" %}</span>
+                                    <strong class="{% if budget_plan.spent_amount > budget_plan.allocated_amount %}text-danger{% else %}text-success{% endif %}">
+                                        {{ budget_plan.spent_amount|currency_format }}
+                                    </strong>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between">
+                                    <span>{% trans "Remaining Amount" %}</span>
+                                    <strong class="{% if budget_plan.remaining_amount < 0 %}text-danger{% else %}text-success{% endif %}">
+                                        {{ budget_plan.remaining_amount|currency_format }}
+                                    </strong>
+                                </div>
+                            </div>
+                            
+                            <hr>
+                            
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between">
+                                    <span>{% trans "Budget Utilization" %}</span>
+                                    <strong>{{ budget_utilization|floatformat:1 }}%</strong>
+                                </div>
+                                <div class="progress mt-2">
+                                    <div class="progress-bar {% if budget_utilization > 100 %}bg-danger{% elif budget_utilization > 80 %}bg-warning{% else %}bg-success{% endif %}" 
+                                         role="progressbar" 
+                                         aria-valuenow="{{ budget_utilization }}" 
+                                         aria-valuemin="0" 
+                                         aria-valuemax="100"
+                                         style="width: 0%">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Quick Actions -->
+                    <div class="card mt-3">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">{% trans "Quick Actions" %}</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-grid gap-2">
+                                <a href="{% url 'budget:expense_create' %}?budget_plan={{ budget_plan.pk }}" class="btn btn-success btn-sm">
+                                    <i class="fas fa-plus"></i> {% trans "Add Expense" %}
+                                </a>
+                                <a href="{% url 'budget:expense_list' %}?budget_plan={{ budget_plan.pk }}" class="btn btn-info btn-sm">
+                                    <i class="fas fa-list"></i> {% trans "View Expenses" %}
+                                </a>
+                                <a href="{% url 'budget:plan_edit' budget_plan.pk %}" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-edit"></i> {% trans "Edit Plan" %}
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Expenses -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="card-title mb-0">{% trans "Recent Expenses" %}</h5>
+                            <a href="{% url 'budget:expense_list' %}?budget_plan={{ budget_plan.pk }}" class="btn btn-sm btn-outline-primary">
+                                {% trans "View All" %}
+                            </a>
+                        </div>
+                        <div class="card-body">
+                            {% if recent_expenses %}
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>{% trans "Date" %}</th>
+                                            <th>{% trans "Description" %}</th>
+                                            <th>{% trans "Type" %}</th>
+                                            <th>{% trans "Amount" %}</th>
+                                            <th>{% trans "Status" %}</th>
+                                            <th>{% trans "Actions" %}</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for expense in recent_expenses %}
+                                        <tr>
+                                            <td>{{ expense.expense_date|date:"M d, Y" }}</td>
+                                            <td>{{ expense.description|truncatechars:50 }}</td>
+                                            <td>{{ expense.expense_type.name|default:"-" }}</td>
+                                            <td class="text-end">{{ expense.amount|currency_format }}</td>
+                                            <td>
+                                                <span class="badge 
+                                                    {% if expense.status == 'approved' %}bg-success
+                                                    {% elif expense.status == 'pending' %}bg-warning
+                                                    {% elif expense.status == 'rejected' %}bg-danger
+                                                    {% elif expense.status == 'paid' %}bg-primary
+                                                    {% else %}bg-secondary{% endif %}">
+                                                    {{ expense.get_status_display }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <a href="{% url 'budget:expense_detail' expense.pk %}" class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <div class="text-center py-4">
+                                <div class="text-muted">
+                                    <i class="fas fa-receipt fa-2x mb-3"></i>
+                                    <p>{% trans "No expenses recorded for this budget plan yet." %}</p>
+                                    <a href="{% url 'budget:expense_create' %}?budget_plan={{ budget_plan.pk }}" class="btn btn-primary">
+                                        {% trans "Add First Expense" %}
+                                    </a>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

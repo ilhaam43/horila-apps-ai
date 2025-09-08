@@ -1,0 +1,8 @@
+<svg width="32" height="24" viewBox="0 0 32 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Bendera Indonesia dengan proporsi resmi 2:3 dan warna standar -->
+  <rect width="32" height="24" rx="2" fill="#FFFFFF" stroke="#E0E0E0" stroke-width="0.5"/>
+  <!-- Bagian merah (atas) dengan warna merah resmi Indonesia -->
+  <rect x="1" y="1" width="30" height="11" fill="#FF0000"/>
+  <!-- Bagian putih (bawah) -->
+  <rect x="1" y="12" width="30" height="11" fill="#FFFFFF"/>
+</svg>

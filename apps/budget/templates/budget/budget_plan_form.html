@@ -1,0 +1,372 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load widget_tweaks %}
+{% load budget_filters %}
+
+{% block title %}{% if object %}Edit Budget Plan{% else %}Create Budget Plan{% endif %}{% endblock %}
+
+
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="page-header">
+                <h1 class="page-title">
+                    {% if object %}
+                        Edit Budget Plan: {{ object.name }}
+                    {% else %}
+                        Create New Budget Plan
+                    {% endif %}
+                </h1>
+                <div class="page-subtitle">Plan and allocate budget for your department or project</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Budget Plan Details</h3>
+                </div>
+                <div class="card-body">
+                    <form method="post" id="budget-plan-form">
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.name.id_for_label }}">Plan Name *</label>
+                                    {{ form.name|add_class:"form-control" }}
+                                    {% if form.name.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.name.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.category.id_for_label }}">Category *</label>
+                                    {{ form.category|add_class:"form-control" }}
+                                    {% if form.category.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.category.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="{{ form.description.id_for_label }}">Description</label>
+                            {{ form.description|add_class:"form-control" }}
+                            {% if form.description.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.description.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="{{ form.allocated_amount.id_for_label }}">Budget Amount *</label>
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text">$</span>
+                                        </div>
+                                        {{ form.allocated_amount|add_class:"form-control" }}
+                                    </div>
+                                    {% if form.allocated_amount.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.allocated_amount.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="{{ form.start_date.id_for_label }}">Start Date *</label>
+                                    {{ form.start_date|add_class:"form-control datepicker" }}
+                                    {% if form.start_date.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.start_date.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label for="{{ form.end_date.id_for_label }}">End Date *</label>
+                                    {{ form.end_date|add_class:"form-control datepicker" }}
+                                    {% if form.end_date.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.end_date.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.department.id_for_label }}">Department</label>
+                                    {{ form.department|add_class:"form-control" }}
+                                    {% if form.department.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.department.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.status.id_for_label }}">Status</label>
+                                    {{ form.status|add_class:"form-control" }}
+                                    {% if form.status.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.status.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <div class="form-check">
+                                {{ form.is_active|add_class:"form-check-input" }}
+                                <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                                    Active Plan
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i>
+                                {% if object %}Update{% else %}Create{% endif %} Budget Plan
+                            </button>
+                            <a href="{% url 'budget:plan_list' %}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            {% if object %}
+            <!-- Budget Utilization -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h3 class="card-title">Budget Utilization</h3>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between">
+                            <span>Budget Amount:</span>
+                            <strong>{{ object.allocated_amount|currency_format }}</strong>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>Spent Amount:</span>
+                            <strong>{{ object.spent_amount|currency_format }}</strong>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>Remaining:</span>
+                            <strong>{{ object.remaining_amount|currency_format }}</strong>
+                        </div>
+                    </div>
+                    
+                    <div class="progress mb-2">
+                        <div class="progress-bar {% if object.utilization_percentage > 90 %}bg-danger{% elif object.utilization_percentage > 75 %}bg-warning{% else %}bg-success{% endif %}" 
+                             data-width="{{ object.utilization_percentage|default:0 }}" style="width: 0%;">
+                            {{ object.utilization_percentage|floatformat:1 }}%
+                        </div>
+                    </div>
+                    
+                    {% if object.is_over_budget %}
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            This budget plan is over budget!
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Recent Expenses -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Recent Expenses</h3>
+                </div>
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        {% for expense in object.expenses.all|slice:":5" %}
+                            <div class="list-group-item px-0">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <h6 class="mb-1">{{ expense.title }}</h6>
+                                        <small class="text-muted">{{ expense.expense_date }}</small>
+                                    </div>
+                                    <div class="text-right">
+                                        <strong>{{ expense.amount|currency_format }}</strong>
+                                        <br>
+                                        <span class="badge badge-{% if expense.status == 'approved' %}success{% elif expense.status == 'pending' %}warning{% else %}secondary{% endif %}">
+                                            {{ expense.status|title }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        {% empty %}
+                            <p class="text-muted">No expenses recorded yet.</p>
+                        {% endfor %}
+                    </div>
+                    
+                    {% if object.expenses.count > 5 %}
+                        <div class="text-center mt-3">
+                            <a href="{% url 'budget:expense_list' %}?budget_plan={{ object.id }}" class="btn btn-sm btn-outline-primary">
+                                View All Expenses ({{ object.expenses.count }})
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% else %}
+            <!-- Help Card for New Budget Plan -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Budget Planning Tips</h3>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <i class="fas fa-lightbulb text-warning"></i>
+                            Set realistic budget amounts based on historical data
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-calendar text-info"></i>
+                            Choose appropriate start and end dates for your planning period
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-users text-success"></i>
+                            Assign budgets to specific departments for better tracking
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-bell text-primary"></i>
+                            Budget alerts will notify you when spending approaches limits
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Set progress bar width from data attribute
+    const progressBars = document.querySelectorAll('.progress-bar[data-width]');
+    progressBars.forEach(function(bar) {
+        const width = bar.getAttribute('data-width');
+        bar.style.width = width + '%';
+    });
+    
+    // Initialize date pickers
+    $('.datepicker').datepicker({
+        format: 'yyyy-mm-dd',
+        autoclose: true,
+        todayHighlight: true
+    });
+    
+    // Real-time validation for allocated amount (12-digit support)
+    $('#id_allocated_amount').on('input', function() {
+        const value = parseFloat($(this).val());
+        const maxValue = 999999999999.99; // 12 digits max
+        
+        if (value > maxValue) {
+            $(this).addClass('is-invalid');
+            $(this).next('.invalid-feedback').remove();
+            $(this).after('<div class="invalid-feedback">Amount cannot exceed 999,999,999,999.99 (12 digits maximum)</div>');
+        } else if (value <= 0) {
+            $(this).addClass('is-invalid');
+            $(this).next('.invalid-feedback').remove();
+            $(this).after('<div class="invalid-feedback">Amount must be greater than zero</div>');
+        } else {
+            $(this).removeClass('is-invalid');
+            $(this).next('.invalid-feedback').remove();
+        }
+    });
+    
+    // Form validation
+    $('#budget-plan-form').on('submit', function(e) {
+        let isValid = true;
+        
+        // Check required fields
+        const nameField = $('#id_name');
+        if (!nameField.val().trim()) {
+            nameField.addClass('is-invalid');
+            isValid = false;
+        } else {
+            nameField.removeClass('is-invalid');
+        }
+        
+        const categoryField = $('#id_category');
+        if (!categoryField.val()) {
+            categoryField.addClass('is-invalid');
+            isValid = false;
+        } else {
+            categoryField.removeClass('is-invalid');
+        }
+        
+        const allocatedAmountField = $('#id_allocated_amount');
+        const allocatedAmount = parseFloat(allocatedAmountField.val());
+        const maxValue = 999999999999.99; // 12 digits max
+        
+        if (!allocatedAmount || allocatedAmount <= 0) {
+            allocatedAmountField.addClass('is-invalid');
+            isValid = false;
+        } else if (allocatedAmount > maxValue) {
+            allocatedAmountField.addClass('is-invalid');
+            isValid = false;
+        } else {
+            allocatedAmountField.removeClass('is-invalid');
+        }
+        
+        const startDateField = $('#id_start_date');
+        const endDateField = $('#id_end_date');
+        
+        if (!startDateField.val()) {
+            startDateField.addClass('is-invalid');
+            isValid = false;
+        } else {
+            startDateField.removeClass('is-invalid');
+        }
+        
+        if (!endDateField.val()) {
+            endDateField.addClass('is-invalid');
+            isValid = false;
+        } else {
+            endDateField.removeClass('is-invalid');
+        }
+        
+        // Check if end date is after start date
+        if (startDateField.val() && endDateField.val()) {
+            if (new Date(endDateField.val()) <= new Date(startDateField.val())) {
+                endDateField.addClass('is-invalid');
+                isValid = false;
+            }
+        }
+        
+        if (!isValid) {
+            e.preventDefault();
+        }
+    });
+});
+</script>
+{% endblock %}

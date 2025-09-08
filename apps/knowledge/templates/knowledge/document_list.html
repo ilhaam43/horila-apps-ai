@@ -1,0 +1,489 @@
+{% extends 'knowledge/base_knowledge.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}Knowledge Documents{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/knowledge.css' %}">
+<style>
+.document-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1rem;
+}
+
+.document-card {
+    background: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+.document-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.document-header {
+    padding: 1rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.document-body {
+    padding: 1rem;
+}
+
+.document-footer {
+    padding: 0.75rem 1rem;
+    background-color: #f8f9fa;
+    border-top: 1px solid #e9ecef;
+}
+
+.filter-sidebar {
+    background: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    padding: 1.5rem;
+    height: fit-content;
+    position: sticky;
+    top: 2rem;
+}
+
+.view-toggle {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.view-toggle .btn {
+    padding: 0.375rem 0.75rem;
+}
+
+.search-bar {
+    background: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800">Knowledge Documents</h1>
+            <p class="mb-0 text-muted">Manage and explore your knowledge base</p>
+        </div>
+        <div class="d-flex gap-2">
+            {% if perms.knowledge.add_knowledgedocument %}
+            <a href="{% url 'knowledge:document_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus mr-1"></i> Add Document
+            </a>
+            {% endif %}
+            <a href="{% url 'knowledge:bulk_upload' %}" class="btn btn-outline-primary">
+                <i class="fas fa-upload mr-1"></i> Bulk Upload
+            </a>
+        </div>
+    </div>
+
+    <!-- Search and Filters -->
+    <div class="search-bar">
+        <form method="get" class="row align-items-end">
+            <div class="col-md-4">
+                <label for="search" class="form-label">Search Documents</label>
+                <div class="input-group">
+                    <input type="text" class="form-control" id="search" name="search" 
+                           value="{{ request.GET.search }}" placeholder="Search by title, content, or tags...">
+                    <div class="input-group-append">
+                        <button class="btn btn-outline-secondary" type="submit">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <label for="category" class="form-label">Category</label>
+                <select class="form-control" id="category" name="category">
+                    <option value="">All Categories</option>
+                    {% for category in categories %}
+                    <option value="{{ category.id }}" {% if request.GET.category == category.id|stringformat:'s' %}selected{% endif %}>
+                        {{ category.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="status" class="form-label">Status</label>
+                <select class="form-control" id="status" name="status">
+                    <option value="">All Status</option>
+                    <option value="draft" {% if request.GET.status == 'draft' %}selected{% endif %}>Draft</option>
+                    <option value="review" {% if request.GET.status == 'review' %}selected{% endif %}>Under Review</option>
+                    <option value="approved" {% if request.GET.status == 'approved' %}selected{% endif %}>Approved</option>
+                    <option value="archived" {% if request.GET.status == 'archived' %}selected{% endif %}>Archived</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="sort" class="form-label">Sort By</label>
+                <select class="form-control" id="sort" name="sort">
+                    <option value="-created_at" {% if request.GET.sort == '-created_at' %}selected{% endif %}>Newest First</option>
+                    <option value="created_at" {% if request.GET.sort == 'created_at' %}selected{% endif %}>Oldest First</option>
+                    <option value="title" {% if request.GET.sort == 'title' %}selected{% endif %}>Title A-Z</option>
+                    <option value="-title" {% if request.GET.sort == '-title' %}selected{% endif %}>Title Z-A</option>
+                    <option value="-view_count" {% if request.GET.sort == '-view_count' %}selected{% endif %}>Most Viewed</option>
+                    <option value="-updated_at" {% if request.GET.sort == '-updated_at' %}selected{% endif %}>Recently Updated</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-filter mr-1"></i> Filter
+                    </button>
+                    <a href="{% url 'knowledge:document_list' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times mr-1"></i> Clear
+                        </a>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div class="row">
+        <!-- Main Content -->
+        <div class="col-lg-9">
+            <!-- View Toggle and Stats -->
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="d-flex align-items-center">
+                    <span class="text-muted mr-3">{{ documents.paginator.count }} documents found</span>
+                    {% if request.GET.search %}
+                    <span class="badge badge-info">Search: "{{ request.GET.search }}"</span>
+                    {% endif %}
+                </div>
+                <div class="view-toggle">
+                    <button class="btn btn-outline-secondary active" id="grid-view">
+                        <i class="fas fa-th"></i>
+                    </button>
+                    <button class="btn btn-outline-secondary" id="list-view">
+                        <i class="fas fa-list"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Bulk Actions -->
+            {% if perms.knowledge.change_knowledgedocument %}
+            <div class="bulk-actions mb-3" style="display: none;">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="text-muted">Selected: <span id="selected-count">0</span> documents</span>
+                    <button class="btn btn-sm btn-outline-primary bulk-action-btn" data-action="categorize">
+                        <i class="fas fa-tags mr-1"></i> Categorize
+                    </button>
+                    <button class="btn btn-sm btn-outline-warning bulk-action-btn" data-action="archive">
+                        <i class="fas fa-archive mr-1"></i> Archive
+                    </button>
+                    {% if perms.knowledge.delete_knowledgedocument %}
+                    <button class="btn btn-sm btn-outline-danger bulk-action-btn" data-action="delete">
+                        <i class="fas fa-trash mr-1"></i> Delete
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Documents Grid -->
+            <div class="document-grid" id="documents-container">
+                {% for document in documents %}
+                <div class="document-card fade-in">
+                    {% if perms.knowledge.change_knowledgedocument %}
+                    <div class="position-absolute" style="top: 0.5rem; left: 0.5rem; z-index: 10;">
+                        <input type="checkbox" class="document-checkbox" value="{{ document.id }}">
+                    </div>
+                    {% endif %}
+                    
+                    <div class="document-header">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <h5 class="mb-1">
+                                    <a href="{% url 'knowledge:document_detail' document.id %}" class="text-decoration-none">
+                        {{ document.title|truncatechars:50 }}
+                    </a>
+                                </h5>
+                                <div class="d-flex align-items-center gap-2 mb-2">
+                                    <span class="status-badge status-{{ document.status }}">
+                                        {{ document.get_status_display }}
+                                    </span>
+                                    {% if document.category %}
+                                    <span class="category-badge" data-color="{{ document.category.color|default:'#007bff' }}">
+                                        <i class="{{ document.category.icon }}"></i>
+                                        {{ document.category.name }}
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="document-icon {{ document.file_type|default:'other' }}">
+                                <i class="{{ document.get_file_icon }}"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="document-body">
+                        <p class="text-muted mb-2 text-truncate-3">
+                            {{ document.description|default:"No description available"|truncatechars:120 }}
+                        </p>
+                        
+                        {% if document.tags.exists %}
+                        <div class="tag-cloud mb-2">
+                            {% for tag in document.tags.all|slice:":3" %}
+                            <span class="tag-item">
+                                <i class="fas fa-tag"></i> {{ tag.name }}
+                            </span>
+                            {% endfor %}
+                            {% if document.tags.count > 3 %}
+                            <span class="tag-item">+{{ document.tags.count|add:"-3" }} more</span>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+
+                        <div class="row text-center">
+                            <div class="col-4">
+                                <small class="text-muted d-block">Views</small>
+                                <strong>{{ document.view_count }}</strong>
+                            </div>
+                            <div class="col-4">
+                                <small class="text-muted d-block">Downloads</small>
+                                <strong>{{ document.download_count }}</strong>
+                            </div>
+                            <div class="col-4">
+                                <small class="text-muted d-block">Size</small>
+                                <strong>{{ document.file_size|filesizeformat }}</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="document-footer">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="d-flex align-items-center">
+                                <img src="{{ document.created_by.profile.avatar.url|default:'/static/img/default-avatar.png' }}" 
+                                     class="rounded-circle mr-2" width="24" height="24" alt="{{ document.created_by.get_full_name }}">
+                                <small class="text-muted">
+                                    {{ document.created_by.get_full_name|default:document.created_by.username }}
+                                </small>
+                            </div>
+                            <small class="text-muted" title="{{ document.created_at }}">
+                                {{ document.created_at|timesince }} ago
+                            </small>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between align-items-center mt-2">
+                            <div class="d-flex" style="gap: 0.25rem;">
+                                <a href="{% url 'knowledge:document_detail' document.id %}" 
+                                   class="btn btn-sm btn-outline-primary" title="View Document">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                {% if document.file %}
+                                <a href="{% url 'knowledge:document_download' document.id %}" 
+                                   class="btn btn-sm btn-outline-success" title="Download">
+                                    <i class="fas fa-download"></i>
+                                </a>
+                                {% endif %}
+                                {% if perms.knowledge.change_knowledgedocument and document.created_by == request.user or request.user.is_staff %}
+                                <a href="{% url 'knowledge:document_edit' document.id %}" 
+                                   class="btn btn-sm btn-outline-warning" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                {% endif %}
+                            </div>
+                            
+                            {% if document.ai_confidence %}
+                            <div class="ai-confidence ai-confidence-{{ document.get_ai_confidence_level }}" 
+                                 title="AI Confidence: {{ document.ai_confidence }}%">
+                                <i class="fas fa-robot"></i> {{ document.ai_confidence }}%
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-12">
+                    <div class="text-center py-5">
+                        <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
+                        <h4 class="text-muted">No documents found</h4>
+                        <p class="text-muted">Try adjusting your search criteria or add some documents to get started.</p>
+                        {% if perms.knowledge.add_knowledgedocument %}
+                        <a href="{% url 'knowledge:document_create' %}" class="btn btn-primary">
+                            <i class="fas fa-plus mr-1"></i> Add Your First Document
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Pagination -->
+            {% if documents.has_other_pages %}
+            <nav aria-label="Document pagination" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if documents.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ documents.previous_page_number }}">
+                            <i class="fas fa-chevron-left"></i> Previous
+                        </a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for num in documents.paginator.page_range %}
+                    {% if documents.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                    {% elif num > documents.number|add:'-3' and num < documents.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ num }}">
+                            {{ num }}
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% endfor %}
+                    
+                    {% if documents.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ documents.next_page_number }}">
+                            Next <i class="fas fa-chevron-right"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-3">
+            <div class="filter-sidebar">
+                <h5 class="mb-3">Quick Filters</h5>
+                
+                <!-- Recent Documents -->
+                <div class="mb-4">
+                    <h6 class="text-muted mb-2">Recent Documents</h6>
+                    {% for doc in recent_documents|slice:":5" %}
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="document-icon {{ doc.file_type|default:'other' }} mr-2" style="width: 24px; height: 24px; font-size: 0.75rem;">
+                            <i class="{{ doc.get_file_icon }}"></i>
+                        </div>
+                        <a href="{% url 'knowledge:document_detail' doc.id %}" class="text-decoration-none text-truncate">
+                            {{ doc.title|truncatechars:30 }}
+                        </a>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted small">No recent documents</p>
+                    {% endfor %}
+                </div>
+
+                <!-- Popular Tags -->
+                <div class="mb-4">
+                    <h6 class="text-muted mb-2">Popular Tags</h6>
+                    <div class="tag-cloud">
+                        {% for tag in popular_tags|slice:":10" %}
+                        <a href="?tag={{ tag.name }}" class="tag-item">
+                            {{ tag.name }} ({{ tag.document_count }})
+                        </a>
+                        {% empty %}
+                        <p class="text-muted small">No tags available</p>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Categories -->
+                <div class="mb-4">
+                    <h6 class="text-muted mb-2">Categories</h6>
+                    {% for category in categories %}
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <a href="?category={{ category.id }}" class="text-decoration-none">
+                            <i class="{{ category.icon }} mr-1"></i>
+                            {{ category.name }}
+                        </a>
+                        <span class="badge badge-secondary">{{ category.document_count }}</span>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted small">No categories available</p>
+                    {% endfor %}
+                </div>
+
+                <!-- Quick Actions -->
+                <div>
+                    <h6 class="text-muted mb-2">Quick Actions</h6>
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'knowledge:document_search' %}" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-search-plus mr-1"></i> Advanced Search
+                        </a>
+                        <a href="{% url 'knowledge:document_list' %}" class="btn btn-sm btn-outline-success">
+                            <i class="fas fa-file-export mr-1"></i> Export Data
+                        </a>
+                        {% if perms.knowledge.view_analytics %}
+                        <a href="{% url 'knowledge:dashboard' %}" class="btn btn-sm btn-outline-info">
+                            <i class="fas fa-chart-bar mr-1"></i> Analytics
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Spinner -->
+<div id="loading-spinner" class="text-center py-3" style="display: none;">
+    <div class="loading-spinner"></div>
+    <p class="text-muted mt-2">Loading documents...</p>
+</div>
+
+<!-- Notifications Container -->
+<div id="notifications-container" class="position-fixed" style="top: 1rem; right: 1rem; z-index: 1050;"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/knowledge.js' %}"></script>
+<script>
+$(document).ready(function() {
+    // View toggle functionality
+    $('#grid-view, #list-view').on('click', function() {
+        $('.view-toggle .btn').removeClass('active');
+        $(this).addClass('active');
+        
+        if ($(this).attr('id') === 'list-view') {
+            $('.document-grid').removeClass('document-grid').addClass('document-list');
+        } else {
+            $('.document-list').removeClass('document-list').addClass('document-grid');
+        }
+    });
+    
+    // Bulk selection
+    $('.document-checkbox').on('change', function() {
+        const selectedCount = $('.document-checkbox:checked').length;
+        $('#selected-count').text(selectedCount);
+        
+        if (selectedCount > 0) {
+            $('.bulk-actions').show();
+        } else {
+            $('.bulk-actions').hide();
+        }
+    });
+    
+    // Auto-submit form on filter change
+    $('#category, #status, #sort').on('change', function() {
+        $(this).closest('form').submit();
+    });
+    
+    // Apply dynamic colors
+    $('[data-color]').each(function() {
+        const color = $(this).attr('data-color');
+        $(this).css({
+            'background-color': color,
+            'color': 'white'
+        });
+    });
+});
+</script>
+{% endblock %}

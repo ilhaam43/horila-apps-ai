@@ -1,0 +1,448 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{{ training_data.title }} - Model Evaluation{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/training-data.css' %}" rel="stylesheet">
+<style>
+.evaluation-card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+.evaluation-header {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    padding: 20px;
+    border-radius: 8px 8px 0 0;
+}
+
+.metric-card {
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    margin-bottom: 15px;
+    transition: transform 0.2s;
+}
+
+.metric-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.metric-value {
+    font-size: 2.5rem;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.metric-label {
+    color: #6c757d;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.success-ratio {
+    background: linear-gradient(135deg, #007bff 0%, #6610f2 100%);
+    color: white;
+}
+
+.accuracy-metric {
+    border-left: 4px solid #28a745;
+}
+
+.precision-metric {
+    border-left: 4px solid #17a2b8;
+}
+
+.recall-metric {
+    border-left: 4px solid #ffc107;
+}
+
+.f1-metric {
+    border-left: 4px solid #dc3545;
+}
+
+.no-metrics {
+    text-align: center;
+    padding: 40px;
+    color: #6c757d;
+}
+
+.chart-container {
+    position: relative;
+    height: 300px;
+    margin: 20px 0;
+}
+
+.additional-metrics {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px;
+    margin-top: 20px;
+}
+
+.training-info {
+    background: #e9ecef;
+    border-radius: 8px;
+    padding: 15px;
+    margin-top: 15px;
+}
+
+.btn-update-metrics {
+    background: linear-gradient(135deg, #fd7e14 0%, #e83e8c 100%);
+    border: none;
+    color: white;
+}
+
+.btn-update-metrics:hover {
+    background: linear-gradient(135deg, #e83e8c 0%, #fd7e14 100%);
+    color: white;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'ai_services:training_data_dashboard' %}">Training Data</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'ai_services:training_data_detail' training_data.id %}">{{ training_data.title }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Model Evaluation</li>
+        </ol>
+    </nav>
+
+    <!-- Header -->
+    <div class="evaluation-card">
+        <div class="evaluation-header">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h2 class="mb-2">{{ training_data.title }}</h2>
+                    <p class="mb-0">Model Evaluation & Performance Metrics</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <span class="badge bg-{% if training_data.processing_status == 'completed' %}success{% elif training_data.processing_status == 'processing' %}warning{% elif training_data.processing_status == 'failed' %}danger{% else %}secondary{% endif %} status-badge">
+                        {{ training_data.get_processing_status_display }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if has_metrics %}
+        <!-- Success Ratio Card -->
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="metric-card success-ratio">
+                    <div class="metric-value">{{ success_ratio|floatformat:1 }}%</div>
+                    <div class="metric-label">Success Ratio</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Metrics -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="metric-card accuracy-metric">
+                    <div class="metric-value">{{ evaluation_summary.accuracy|floatformat:3|default:"N/A" }}</div>
+                    <div class="metric-label">Accuracy</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-card precision-metric">
+                    <div class="metric-value">{{ evaluation_summary.precision|floatformat:3|default:"N/A" }}</div>
+                    <div class="metric-label">Precision</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-card recall-metric">
+                    <div class="metric-value">{{ evaluation_summary.recall|floatformat:3|default:"N/A" }}</div>
+                    <div class="metric-label">Recall</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-card f1-metric">
+                    <div class="metric-value">{{ evaluation_summary.f1_score|floatformat:3|default:"N/A" }}</div>
+                    <div class="metric-label">F1-Score</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Training Information -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="evaluation-card">
+                    <div class="card-body">
+                        <h5 class="card-title">Training Information</h5>
+                        <div class="training-info">
+                            <div class="row">
+                                <div class="col-6">
+                                    <strong>Train/Test Split:</strong><br>
+                                    <span class="text-muted">{{ training_data.train_test_split_ratio|floatformat:1|default:"80.0" }}% / {% widthratio training_data.train_test_split_ratio|default:80 1 -1|add:100 %}%</span>
+                                </div>
+                                <div class="col-6">
+                                    <strong>Training Epochs:</strong><br>
+                                    <span class="text-muted">{{ training_data.training_epochs|default:"N/A" }}</span>
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-6">
+                                    <strong>Validation Loss:</strong><br>
+                                    <span class="text-muted">{{ training_data.validation_loss|floatformat:4|default:"N/A" }}</span>
+                                </div>
+                                <div class="col-6">
+                                    <strong>Model Size:</strong><br>
+                                    <span class="text-muted">{{ training_data.model_size_mb|floatformat:2|default:"N/A" }} MB</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="evaluation-card">
+                    <div class="card-body">
+                        <h5 class="card-title">Performance Chart</h5>
+                        <div class="chart-container">
+                            <canvas id="metricsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Additional Metrics -->
+        {% if evaluation_summary.additional_metrics %}
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="evaluation-card">
+                    <div class="card-body">
+                        <h5 class="card-title">Additional Metrics</h5>
+                        <div class="additional-metrics">
+                            <pre>{{ evaluation_summary.additional_metrics|pprint }}</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+    {% else %}
+        <!-- No Metrics Available -->
+        <div class="evaluation-card">
+            <div class="no-metrics">
+                <i class="fas fa-chart-line fa-3x mb-3 text-muted"></i>
+                <h4>No Evaluation Metrics Available</h4>
+                <p>This training data hasn't been evaluated yet. Train and evaluate your model to see performance metrics.</p>
+                <button class="btn btn-update-metrics" data-bs-toggle="modal" data-bs-target="#updateMetricsModal">
+                    <i class="fas fa-plus"></i> Add Evaluation Metrics
+                </button>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Action Buttons -->
+    <div class="row mb-4">
+        <div class="col-md-12 text-center">
+            <a href="{% url 'ai_services:training_data_detail' training_data.id %}" class="btn btn-secondary me-2">
+                <i class="fas fa-arrow-left"></i> Back to Detail
+            </a>
+            <button class="btn btn-update-metrics" data-bs-toggle="modal" data-bs-target="#updateMetricsModal">
+                <i class="fas fa-edit"></i> Update Metrics
+            </button>
+            <a href="{% url 'ai_services:training_data_performance_dashboard' %}" class="btn btn-info ms-2">
+                <i class="fas fa-tachometer-alt"></i> Performance Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Update Metrics Modal -->
+<div class="modal fade" id="updateMetricsModal" tabindex="-1" aria-labelledby="updateMetricsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="updateMetricsModalLabel">Update Evaluation Metrics</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="updateMetricsForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="accuracy" class="form-label">Accuracy (0-1)</label>
+                                <input type="number" class="form-control" id="accuracy" name="accuracy" step="0.001" min="0" max="1" value="{{ evaluation_summary.accuracy|default:'' }}">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="precision" class="form-label">Precision (0-1)</label>
+                                <input type="number" class="form-control" id="precision" name="precision" step="0.001" min="0" max="1" value="{{ evaluation_summary.precision|default:'' }}">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="recall" class="form-label">Recall (0-1)</label>
+                                <input type="number" class="form-control" id="recall" name="recall" step="0.001" min="0" max="1" value="{{ evaluation_summary.recall|default:'' }}">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="f1_score" class="form-label">F1-Score (0-1)</label>
+                                <input type="number" class="form-control" id="f1_score" name="f1_score" step="0.001" min="0" max="1" value="{{ evaluation_summary.f1_score|default:'' }}">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="validation_loss" class="form-label">Validation Loss</label>
+                                <input type="number" class="form-control" id="validation_loss" name="validation_loss" step="0.0001" min="0" value="{{ evaluation_summary.validation_loss|default:'' }}">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="epochs" class="form-label">Training Epochs</label>
+                                <input type="number" class="form-control" id="epochs" name="epochs" min="1" value="{{ evaluation_summary.training_epochs|default:'' }}">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="model_size" class="form-label">Model Size (MB)</label>
+                        <input type="number" class="form-control" id="model_size" name="model_size" step="0.01" min="0" value="{{ evaluation_summary.model_size_mb|default:'' }}">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-update-metrics" onclick="updateMetrics()">Update Metrics</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% if has_metrics %}
+{{ evaluation_summary|json_script:"evaluation-data" }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize metrics chart
+    const evaluationDataElement = document.getElementById('evaluation-data');
+    if (evaluationDataElement) {
+        const evaluationData = JSON.parse(evaluationDataElement.textContent);
+        const ctx = document.getElementById('metricsChart');
+        if (ctx) {
+            const metricsChart = new Chart(ctx.getContext('2d'), {
+                type: 'radar',
+                data: {
+                    labels: ['Accuracy', 'Precision', 'Recall', 'F1-Score'],
+                    datasets: [{
+                        label: 'Model Performance',
+                        data: [
+                            parseFloat(evaluationData.accuracy || 0),
+                            parseFloat(evaluationData.precision || 0),
+                            parseFloat(evaluationData.recall || 0),
+                            parseFloat(evaluationData.f1_score || 0)
+                        ],
+                        backgroundColor: 'rgba(40, 167, 69, 0.2)',
+                        borderColor: 'rgba(40, 167, 69, 1)',
+                        borderWidth: 2,
+                        pointBackgroundColor: 'rgba(40, 167, 69, 1)',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: 'rgba(40, 167, 69, 1)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            max: 1,
+                            ticks: {
+                                stepSize: 0.2
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+    }
+});
+</script>
+{% else %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // No metrics available
+});
+</script>
+{% endif %}
+
+// Update metrics function
+function updateMetrics() {
+    const form = document.getElementById('updateMetricsForm');
+    const formData = new FormData(form);
+    
+    const data = {
+        accuracy: formData.get('accuracy') ? parseFloat(formData.get('accuracy')) : null,
+        precision: formData.get('precision') ? parseFloat(formData.get('precision')) : null,
+        recall: formData.get('recall') ? parseFloat(formData.get('recall')) : null,
+        f1_score: formData.get('f1_score') ? parseFloat(formData.get('f1_score')) : null,
+        validation_loss: formData.get('validation_loss') ? parseFloat(formData.get('validation_loss')) : null,
+        epochs: formData.get('epochs') ? parseInt(formData.get('epochs')) : null,
+        model_size: formData.get('model_size') ? parseFloat(formData.get('model_size')) : null
+    };
+    
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+    const trainingDataId = '{{ training_data.id }}';
+    
+    fetch(`/ai_services/training_data/${trainingDataId}/update_metrics/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken ? csrfToken.value : '{{ csrf_token }}'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('updateMetricsModal'));
+            modal.hide();
+            
+            // Show success message
+            alert('Metrics updated successfully!');
+            
+            // Reload page to show updated metrics
+            location.reload();
+        } else {
+            alert('Error updating metrics: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error updating metrics');
+    });
+}
+</script>
+{% endblock %}

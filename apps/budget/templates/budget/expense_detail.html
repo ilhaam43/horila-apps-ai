@@ -1,0 +1,271 @@
+{% extends "budget/base_budget.html" %}
+{% load static %}
+{% load i18n %}
+{% load budget_filters %}
+
+{% block title %}{{ expense.description }} - {% trans "Expense Details" %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2>{% trans "Expense Details" %}</h2>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a href="{% url 'budget:dashboard' %}">{% trans "Budget" %}</a></li>
+                            <li class="breadcrumb-item"><a href="{% url 'budget:expense_list' %}">{% trans "Expenses" %}</a></li>
+                            <li class="breadcrumb-item active">{{ expense.description|truncatechars:30 }}</li>
+                        </ol>
+                    </nav>
+                </div>
+                <div>
+                    {% if expense.status == 'pending' %}
+                    <a href="{% url 'budget:expense_edit' expense.pk %}" class="btn btn-primary">
+                        <i class="fas fa-edit"></i> {% trans "Edit" %}
+                    </a>
+                    {% endif %}
+                    <a href="{% url 'budget:expense_list' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> {% trans "Back to List" %}
+                    </a>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Expense Information -->
+                <div class="col-lg-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">{% trans "Expense Information" %}</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <dl class="row">
+                                        <dt class="col-sm-4">{% trans "Description" %}:</dt>
+                                        <dd class="col-sm-8">{{ expense.description }}</dd>
+                                        
+                                        <dt class="col-sm-4">{% trans "Amount" %}:</dt>
+                                        <dd class="col-sm-8">
+                                            <span class="h5 text-primary">{{ expense.amount|currency_format }}</span>
+                                        </dd>
+                                        
+                                        <dt class="col-sm-4">{% trans "Date" %}:</dt>
+                                        <dd class="col-sm-8">{{ expense.expense_date|date:"M d, Y" }}</dd>
+                                        
+                                        <dt class="col-sm-4">{% trans "Type" %}:</dt>
+                                        <dd class="col-sm-8">{{ expense.expense_type.name|default:"-" }}</dd>
+                                        
+                                        <dt class="col-sm-4">{% trans "Status" %}:</dt>
+                                        <dd class="col-sm-8">
+                                            <span class="badge 
+                                                {% if expense.status == 'approved' %}bg-success
+                                                {% elif expense.status == 'pending' %}bg-warning
+                                                {% elif expense.status == 'rejected' %}bg-danger
+                                                {% elif expense.status == 'paid' %}bg-primary
+                                                {% else %}bg-secondary{% endif %}">
+                                                {{ expense.get_status_display }}
+                                            </span>
+                                        </dd>
+                                    </dl>
+                                </div>
+                                <div class="col-md-6">
+                                    <dl class="row">
+                                        <dt class="col-sm-4">{% trans "Budget Plan" %}:</dt>
+                                        <dd class="col-sm-8">
+                                            {% if expense.budget_plan %}
+                                            <a href="{% url 'budget:plan_detail' expense.budget_plan.pk %}" class="text-decoration-none">
+                                                {{ expense.budget_plan.name }}
+                                            </a>
+                                            {% else %}
+                                            <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </dd>
+                                        
+                                        <dt class="col-sm-4">{% trans "Requested By" %}:</dt>
+                                        <dd class="col-sm-8">{{ expense.requested_by.employee_first_name }} {{ expense.requested_by.employee_last_name|default:expense.requested_by.badge_id }}</dd>
+                                        
+                                        <dt class="col-sm-4">{% trans "Created At" %}:</dt>
+                                        <dd class="col-sm-8">{{ expense.created_at|date:"M d, Y H:i" }}</dd>
+                                        
+                                        {% if expense.approved_by %}
+                                        <dt class="col-sm-4">{% trans "Approved By" %}:</dt>
+                                        <dd class="col-sm-8">{% if expense.approved_by %}{{ expense.approved_by.employee_first_name }} {{ expense.approved_by.employee_last_name|default:expense.approved_by.badge_id }}{% else %}-{% endif %}</dd>
+                                        
+                                        <dt class="col-sm-4">{% trans "Approved At" %}:</dt>
+                                        <dd class="col-sm-8">{{ expense.approved_at|date:"M d, Y H:i" }}</dd>
+                                        {% endif %}
+                                    </dl>
+                                </div>
+                            </div>
+                            
+                            {% if expense.notes %}
+                            <div class="row mt-3">
+                                <div class="col-12">
+                                    <h6>{% trans "Notes" %}</h6>
+                                    <p class="text-muted">{{ expense.notes|linebreaks }}</p>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Receipt/Attachments -->
+                    {% if expense.receipt or attachments %}
+                    <div class="card mt-3">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">{% trans "Attachments" %}</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if expense.receipt %}
+                            <div class="mb-3">
+                                <h6>{% trans "Receipt" %}</h6>
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-file-alt fa-2x text-muted me-3"></i>
+                                    <div>
+                                        <a href="{{ expense.receipt.url }}" target="_blank" class="text-decoration-none">
+                                            {% trans "View Receipt" %}
+                                        </a>
+                                        <br>
+                                        <small class="text-muted">{{ expense.receipt.name }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            {% if attachments %}
+                            <div>
+                                <h6>{% trans "Additional Attachments" %}</h6>
+                                {% for attachment in attachments %}
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="fas fa-paperclip fa-lg text-muted me-3"></i>
+                                    <div>
+                                        <a href="{{ attachment.file.url }}" target="_blank" class="text-decoration-none">
+                                            {{ attachment.name|default:attachment.file.name }}
+                                        </a>
+                                        {% if attachment.description %}
+                                        <br>
+                                        <small class="text-muted">{{ attachment.description }}</small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Actions Panel -->
+                <div class="col-lg-4">
+                    <!-- Status Actions -->
+                    {% if expense.status == 'pending' and perms.budget.change_expense %}
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">{% trans "Actions" %}</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-grid gap-2">
+                                <a href="{% url 'budget:expense_approve' expense.pk %}" class="btn btn-success">
+                                    <i class="fas fa-check"></i> {% trans "Approve Expense" %}
+                                </a>
+                                <a href="{% url 'budget:expense_reject' expense.pk %}" class="btn btn-danger">
+                                    <i class="fas fa-times"></i> {% trans "Reject Expense" %}
+                                </a>
+                                <hr>
+                                <a href="{% url 'budget:expense_edit' expense.pk %}" class="btn btn-primary">
+                                    <i class="fas fa-edit"></i> {% trans "Edit Expense" %}
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Budget Impact -->
+                    {% if expense.budget_plan %}
+                    <div class="card mt-3">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">{% trans "Budget Impact" %}</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between">
+                                    <span>{% trans "Budget Plan" %}</span>
+                                    <a href="{% url 'budget:plan_detail' expense.budget_plan.pk %}" class="text-decoration-none">
+                                        {{ expense.budget_plan.name }}
+                                    </a>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between">
+                                    <span>{% trans "Allocated Amount" %}</span>
+                                    <strong class="text-primary">{{ expense.budget_plan.allocated_amount|currency_format }}</strong>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between">
+                                    <span>{% trans "Current Spent" %}</span>
+                                    <strong class="text-info">{{ expense.budget_plan.spent_amount|currency_format }}</strong>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between">
+                                    <span>{% trans "This Expense" %}</span>
+                                    <strong class="text-warning">{{ expense.amount|currency_format }}</strong>
+                                </div>
+                            </div>
+                            
+                            <hr>
+                            
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between">
+                                    <span>{% trans "Remaining After" %}</span>
+                                    <strong class="{% if remaining_after < 0 %}text-danger{% else %}text-success{% endif %}">
+                                        {{ remaining_after|currency_format }}
+                                    </strong>
+                                </div>
+                            </div>
+                            
+                            {% if remaining_after < 0 %}
+                            <div class="alert alert-warning alert-sm" role="alert">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                {% trans "This expense will exceed the budget allocation." %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Quick Links -->
+                    <div class="card mt-3">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">{% trans "Quick Links" %}</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-grid gap-2">
+                                <a href="{% url 'budget:expense_create' %}" class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-plus"></i> {% trans "Add New Expense" %}
+                                </a>
+                                <a href="{% url 'budget:expense_list' %}" class="btn btn-outline-secondary btn-sm">
+                                    <i class="fas fa-list"></i> {% trans "All Expenses" %}
+                                </a>
+                                {% if expense.budget_plan %}
+                                <a href="{% url 'budget:plan_detail' expense.budget_plan.pk %}" class="btn btn-outline-info btn-sm">
+                                    <i class="fas fa-chart-pie"></i> {% trans "View Budget Plan" %}
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

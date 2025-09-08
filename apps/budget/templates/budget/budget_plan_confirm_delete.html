@@ -1,0 +1,88 @@
+{% extends "budget/base_budget.html" %}
+{% load static %}
+{% load i18n %}
+{% load budget_filters %}
+
+{% block title %}{% trans "Delete Budget Plan" %} - {{ object.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="card-title mb-0">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        {% trans "Delete Budget Plan" %}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning" role="alert">
+                        <h5 class="alert-heading">{% trans "Are you sure?" %}</h5>
+                        <p>{% trans "You are about to delete the budget plan" %} <strong>"{{ object.name }}"</strong>.</p>
+                        <hr>
+                        <p class="mb-0">
+                            <i class="fas fa-info-circle"></i>
+                            {% trans "This action cannot be undone. All associated expenses and data will also be affected." %}
+                        </p>
+                    </div>
+
+                    <!-- Budget Plan Details -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <dl class="row">
+                                <dt class="col-sm-5">{% trans "Name" %}:</dt>
+                                <dd class="col-sm-7">{{ object.name }}</dd>
+                                
+                                <dt class="col-sm-5">{% trans "Category" %}:</dt>
+                                <dd class="col-sm-7">{{ object.category.name|default:"-" }}</dd>
+                                
+                                <dt class="col-sm-5">{% trans "Status" %}:</dt>
+                                <dd class="col-sm-7">
+                                    <span class="badge 
+                                        {% if object.status == 'active' %}bg-success
+                                        {% elif object.status == 'draft' %}bg-secondary
+                                        {% elif object.status == 'completed' %}bg-primary
+                                        {% elif object.status == 'cancelled' %}bg-danger
+                                        {% else %}bg-light text-dark{% endif %}">
+                                        {{ object.get_status_display }}
+                                    </span>
+                                </dd>
+                            </dl>
+                        </div>
+                        <div class="col-md-6">
+                            <dl class="row">
+                                <dt class="col-sm-5">{% trans "Period" %}:</dt>
+                                <dd class="col-sm-7">
+                                    {{ object.start_date|date:"M d, Y" }} - {{ object.end_date|date:"M d, Y" }}
+                                </dd>
+                                
+                                <dt class="col-sm-5">{% trans "Allocated" %}:</dt>
+                                <dd class="col-sm-7">{{ object.allocated_amount|currency_format }}</dd>
+                                
+                                <dt class="col-sm-5">{% trans "Spent" %}:</dt>
+                                <dd class="col-sm-7">{{ object.spent_amount|currency_format }}</dd>
+                            </dl>
+                        </div>
+                    </div>
+
+                    <!-- Form -->
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'budget:plan_detail' object.pk %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i>
+                                {% trans "Cancel" %}
+                            </a>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-trash"></i>
+                                {% trans "Yes, Delete Budget Plan" %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

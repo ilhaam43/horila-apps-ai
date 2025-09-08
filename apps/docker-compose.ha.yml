@@ -1,0 +1,520 @@
+version: '3.8'
+
+services:
+  # HAProxy Load Balancer
+  haproxy:
+    image: haproxy:2.8-alpine
+    container_name: horilla_haproxy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8404:8404"  # HAProxy stats
+    volumes:
+      - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+      - ./ssl:/etc/ssl/certs:ro
+    networks:
+      - horilla_network
+    depends_on:
+      - web1
+      - web2
+      - web3
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8404/stats"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Django Application Instances (3 replicas)
+  web1:
+    build: .
+    container_name: horilla_web1
+    expose:
+      - "8000"
+    volumes:
+      - .:/app
+      - static_data:/app/static
+      - media_data:/app/media
+    environment:
+      - DEBUG=False
+      - DATABASE_URL=postgresql://horilla_user:horilla_pass@postgres_primary:5432/horilla_db
+      - REDIS_URL=redis://redis_primary:6379/0
+      - INSTANCE_ID=web1
+      - CHROMA_HOST=chromadb
+      - CHROMA_PORT=8000
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - N8N_BASE_URL=http://n8n:5678
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+    networks:
+      - horilla_network
+    depends_on:
+      - postgres_primary
+      - redis_primary
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/monitoring/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  web2:
+    build: .
+    container_name: horilla_web2
+    expose:
+      - "8000"
+    volumes:
+      - .:/app
+      - static_data:/app/static
+      - media_data:/app/media
+    environment:
+      - DEBUG=False
+      - DATABASE_URL=postgresql://horilla_user:horilla_pass@postgres_primary:5432/horilla_db
+      - REDIS_URL=redis://redis_primary:6379/0
+      - INSTANCE_ID=web2
+      - CHROMA_HOST=chromadb
+      - CHROMA_PORT=8000
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - N8N_BASE_URL=http://n8n:5678
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+    networks:
+      - horilla_network
+    depends_on:
+      - postgres_primary
+      - redis_primary
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/monitoring/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  web3:
+    build: .
+    container_name: horilla_web3
+    expose:
+      - "8000"
+    volumes:
+      - .:/app
+      - static_data:/app/static
+      - media_data:/app/media
+    environment:
+      - DEBUG=False
+      - DATABASE_URL=postgresql://horilla_user:horilla_pass@postgres_primary:5432/horilla_db
+      - REDIS_URL=redis://redis_primary:6379/0
+      - INSTANCE_ID=web3
+      - CHROMA_HOST=chromadb
+      - CHROMA_PORT=8000
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - N8N_BASE_URL=http://n8n:5678
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+    networks:
+      - horilla_network
+    depends_on:
+      - postgres_primary
+      - redis_primary
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/monitoring/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # PostgreSQL Primary Database
+  postgres_primary:
+    image: postgres:15-alpine
+    container_name: horilla_postgres_primary
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_primary_data:/var/lib/postgresql/data
+      - ./postgres/postgresql.conf:/etc/postgresql/postgresql.conf
+      - ./postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf
+      - ./postgres/init-replication.sql:/docker-entrypoint-initdb.d/init-replication.sql
+    environment:
+      - POSTGRES_DB=horilla_db
+      - POSTGRES_USER=horilla_user
+      - POSTGRES_PASSWORD=horilla_pass
+      - POSTGRES_REPLICATION_USER=replicator
+      - POSTGRES_REPLICATION_PASSWORD=replicator_pass
+    command: >
+      postgres
+      -c config_file=/etc/postgresql/postgresql.conf
+      -c hba_file=/etc/postgresql/pg_hba.conf
+    networks:
+      - horilla_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U horilla_user -d horilla_db"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # PostgreSQL Replica Database
+  postgres_replica:
+    image: postgres:15-alpine
+    container_name: horilla_postgres_replica
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_replica_data:/var/lib/postgresql/data
+      - ./postgres/recovery.conf:/var/lib/postgresql/data/recovery.conf
+    environment:
+      - PGUSER=horilla_user
+      - POSTGRES_PASSWORD=horilla_pass
+      - POSTGRES_MASTER_SERVICE=postgres_primary
+      - POSTGRES_REPLICATION_USER=replicator
+      - POSTGRES_REPLICATION_PASSWORD=replicator_pass
+    command: >
+      bash -c '
+      until pg_basebackup -h postgres_primary -D /var/lib/postgresql/data -U replicator -v -P -W;
+      do
+        echo "Waiting for primary to connect...";
+        sleep 1s;
+      done;
+      echo "standby_mode = on" >> /var/lib/postgresql/data/recovery.conf;
+      echo "primary_conninfo = ''host=postgres_primary port=5432 user=replicator''" >> /var/lib/postgresql/data/recovery.conf;
+      postgres
+      '
+    networks:
+      - horilla_network
+    depends_on:
+      - postgres_primary
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U horilla_user"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis Primary
+  redis_primary:
+    image: redis:7-alpine
+    container_name: horilla_redis_primary
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_primary_data:/data
+      - ./redis/redis-primary.conf:/usr/local/etc/redis/redis.conf
+    command: redis-server /usr/local/etc/redis/redis.conf
+    networks:
+      - horilla_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis Replica
+  redis_replica:
+    image: redis:7-alpine
+    container_name: horilla_redis_replica
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_replica_data:/data
+      - ./redis/redis-replica.conf:/usr/local/etc/redis/redis.conf
+    command: redis-server /usr/local/etc/redis/redis.conf
+    networks:
+      - horilla_network
+    depends_on:
+      - redis_primary
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Celery Workers (Multiple instances)
+  celery_worker1:
+    build: .
+    container_name: horilla_celery_worker1
+    command: celery -A horilla worker --loglevel=info --concurrency=4 --hostname=worker1@%h
+    volumes:
+      - .:/app
+      - media_data:/app/media
+    environment:
+      - CELERY_BROKER_URL=redis://redis_primary:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis_primary:6379/0
+      - DATABASE_URL=postgresql://horilla_user:horilla_pass@postgres_primary:5432/horilla_db
+    networks:
+      - horilla_network
+    depends_on:
+      - redis_primary
+      - postgres_primary
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "celery", "-A", "horilla", "inspect", "ping"]
+      interval: 60s
+      timeout: 30s
+      retries: 3
+
+  celery_worker2:
+    build: .
+    container_name: horilla_celery_worker2
+    command: celery -A horilla worker --loglevel=info --concurrency=4 --hostname=worker2@%h
+    volumes:
+      - .:/app
+      - media_data:/app/media
+    environment:
+      - CELERY_BROKER_URL=redis://redis_primary:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis_primary:6379/0
+      - DATABASE_URL=postgresql://horilla_user:horilla_pass@postgres_primary:5432/horilla_db
+    networks:
+      - horilla_network
+    depends_on:
+      - redis_primary
+      - postgres_primary
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "celery", "-A", "horilla", "inspect", "ping"]
+      interval: 60s
+      timeout: 30s
+      retries: 3
+
+  # Celery Beat Scheduler
+  celery_beat:
+    build: .
+    container_name: horilla_celery_beat
+    command: celery -A horilla beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    volumes:
+      - .:/app
+    environment:
+      - CELERY_BROKER_URL=redis://redis_primary:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis_primary:6379/0
+      - DATABASE_URL=postgresql://horilla_user:horilla_pass@postgres_primary:5432/horilla_db
+    networks:
+      - horilla_network
+    depends_on:
+      - redis_primary
+      - postgres_primary
+    restart: unless-stopped
+
+  # Flower for Celery Monitoring
+  flower:
+    build: .
+    container_name: horilla_flower
+    command: celery -A horilla flower --port=5555 --basic_auth=admin:admin
+    ports:
+      - "5555:5555"
+    environment:
+      - CELERY_BROKER_URL=redis://redis_primary:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis_primary:6379/0
+    networks:
+      - horilla_network
+    depends_on:
+      - redis_primary
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:5555"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ChromaDB Vector Database
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: horilla_chromadb
+    ports:
+      - "8001:8000"
+    volumes:
+      - chromadb_data:/chroma/chroma
+    environment:
+      - CHROMA_SERVER_HOST=0.0.0.0
+      - CHROMA_SERVER_HTTP_PORT=8000
+      - CHROMA_SERVER_CORS_ALLOW_ORIGINS=["*"]
+    networks:
+      - horilla_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Ollama for Local LLM
+  ollama:
+    image: ollama/ollama:latest
+    container_name: horilla_ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    networks:
+      - horilla_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # N8N Workflow Automation
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: horilla_n8n
+    ports:
+      - "5678:5678"
+    volumes:
+      - n8n_data:/home/node/.n8n
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=admin
+      - N8N_BASIC_AUTH_PASSWORD=admin
+      - N8N_HOST=0.0.0.0
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=http://localhost:5678
+      - GENERIC_TIMEZONE=Asia/Jakarta
+      - N8N_LOG_LEVEL=info
+      - N8N_METRICS=true
+    networks:
+      - horilla_network
+    depends_on:
+      - postgres_primary
+      - redis_primary
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5678/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Elasticsearch for Search
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: horilla_elasticsearch
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+    networks:
+      - horilla_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Prometheus for Metrics Collection
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: horilla_prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    networks:
+      - horilla_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Grafana for Visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: horilla_grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    networks:
+      - horilla_network
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Backup Service
+  backup:
+    image: postgres:15-alpine
+    container_name: horilla_backup
+    volumes:
+      - backup_data:/backups
+      - ./scripts/backup.sh:/backup.sh:ro
+    environment:
+      - POSTGRES_HOST=postgres_primary
+      - POSTGRES_DB=horilla_db
+      - POSTGRES_USER=horilla_user
+      - POSTGRES_PASSWORD=horilla_pass
+      - BACKUP_RETENTION_DAYS=30
+    command: >
+      sh -c '
+      chmod +x /backup.sh &&
+      while true; do
+        /backup.sh
+        sleep 86400
+      done
+      '
+    networks:
+      - horilla_network
+    depends_on:
+      - postgres_primary
+    restart: unless-stopped
+
+volumes:
+  postgres_primary_data:
+    driver: local
+  postgres_replica_data:
+    driver: local
+  redis_primary_data:
+    driver: local
+  redis_replica_data:
+    driver: local
+  chromadb_data:
+    driver: local
+  ollama_data:
+    driver: local
+  n8n_data:
+    driver: local
+  elasticsearch_data:
+    driver: local
+  static_data:
+    driver: local
+  media_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+  backup_data:
+    driver: local
+
+networks:
+  horilla_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.25.0.0/16

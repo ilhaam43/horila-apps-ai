@@ -1,0 +1,517 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}Upload Training Data{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/training-data.css' %}" rel="stylesheet">
+<style>
+.file-upload-area {
+    border: 2px dashed #dee2e6;
+    border-radius: 8px;
+    padding: 40px;
+    text-align: center;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.file-upload-area:hover {
+    border-color: #007bff;
+    background-color: #f8f9fa;
+}
+
+.file-upload-area.dragover {
+    border-color: #007bff;
+    background-color: #e3f2fd;
+}
+
+.file-info {
+    display: none;
+    margin-top: 15px;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 5px;
+}
+
+.progress-container {
+    display: none;
+    margin-top: 20px;
+}
+
+.form-section {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+.section-header {
+    background: #f8f9fa;
+    padding: 15px 20px;
+    border-bottom: 1px solid #dee2e6;
+    border-radius: 8px 8px 0 0;
+}
+
+.section-body {
+    padding: 20px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1">Upload Training Data</h2>
+                    <p class="text-muted mb-0">Upload data training baru untuk sistem AI Horilla HR</p>
+                </div>
+                <div>
+                    <a href="{% url 'ai_services:training_data_dashboard' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>Kembali ke Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" id="uploadForm">
+        {% csrf_token %}
+        
+        <div class="row">
+            <div class="col-lg-8">
+                <!-- Basic Information -->
+                <div class="form-section">
+                    <div class="section-header">
+                        <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Informasi Dasar</h5>
+                    </div>
+                    <div class="section-body">
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label for="{{ form.title.id_for_label }}" class="form-label">
+                                    {{ form.title.label }} <span class="text-danger">*</span>
+                                </label>
+                                {{ form.title }}
+                                {% if form.title.help_text %}
+                                    <div class="form-text">{{ form.title.help_text }}</div>
+                                {% endif %}
+                                {% if form.title.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.title.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-12 mb-3">
+                                <label for="{{ form.description.id_for_label }}" class="form-label">
+                                    {{ form.description.label }} <span class="text-danger">*</span>
+                                </label>
+                                {{ form.description }}
+                                {% if form.description.help_text %}
+                                    <div class="form-text">{{ form.description.help_text }}</div>
+                                {% endif %}
+                                {% if form.description.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.description.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- File Upload -->
+                <div class="form-section">
+                    <div class="section-header">
+                        <h5 class="mb-0"><i class="fas fa-upload me-2"></i>Upload File</h5>
+                    </div>
+                    <div class="section-body">
+                        <div class="file-upload-area" id="fileUploadArea">
+                            <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">Drag & Drop file di sini</h5>
+                            <p class="text-muted mb-3">atau klik untuk memilih file</p>
+                            {{ form.file }}
+                            <p class="small text-muted mb-0">
+                                Format yang didukung: TXT, PDF, DOCX, CSV, JSON, XLSX<br>
+                                Maksimal ukuran file: 50MB
+                            </p>
+                        </div>
+                        
+                        <div class="file-info" id="fileInfo">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-file fa-2x text-primary me-3"></i>
+                                <div>
+                                    <div class="fw-bold" id="fileName"></div>
+                                    <div class="text-muted small" id="fileSize"></div>
+                                    <div class="text-muted small" id="fileType"></div>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-danger ms-auto" id="removeFile">
+                                    <i class="fas fa-times"></i> Hapus
+                                </button>
+                            </div>
+                        </div>
+                        
+                        {% if form.file.help_text %}
+                            <div class="form-text mt-2">{{ form.file.help_text }}</div>
+                        {% endif %}
+                        {% if form.file.errors %}
+                            <div class="text-danger small mt-2">
+                                {% for error in form.file.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Configuration -->
+                <div class="form-section">
+                    <div class="section-header">
+                        <h5 class="mb-0"><i class="fas fa-cogs me-2"></i>Konfigurasi AI</h5>
+                    </div>
+                    <div class="section-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.data_type.id_for_label }}" class="form-label">
+                                    {{ form.data_type.label }} <span class="text-danger">*</span>
+                                </label>
+                                {{ form.data_type }}
+                                {% if form.data_type.help_text %}
+                                    <div class="form-text">{{ form.data_type.help_text }}</div>
+                                {% endif %}
+                                {% if form.data_type.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.data_type.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.target_service.id_for_label }}" class="form-label">
+                                    {{ form.target_service.label }} <span class="text-danger">*</span>
+                                </label>
+                                {{ form.target_service }}
+                                {% if form.target_service.help_text %}
+                                    <div class="form-text">{{ form.target_service.help_text }}</div>
+                                {% endif %}
+                                {% if form.target_service.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.target_service.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Additional Information -->
+                <div class="form-section">
+                    <div class="section-header">
+                        <h5 class="mb-0"><i class="fas fa-tags me-2"></i>Informasi Tambahan</h5>
+                    </div>
+                    <div class="section-body">
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label for="{{ form.tags.id_for_label }}" class="form-label">
+                                    {{ form.tags.label }}
+                                </label>
+                                {{ form.tags }}
+                                {% if form.tags.help_text %}
+                                    <div class="form-text">{{ form.tags.help_text }}</div>
+                                {% endif %}
+                                {% if form.tags.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.tags.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-12 mb-3">
+                                <label for="{{ form.notes.id_for_label }}" class="form-label">
+                                    {{ form.notes.label }}
+                                </label>
+                                {{ form.notes }}
+                                {% if form.notes.help_text %}
+                                    <div class="form-text">{{ form.notes.help_text }}</div>
+                                {% endif %}
+                                {% if form.notes.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.notes.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Sidebar -->
+            <div class="col-lg-4">
+                <!-- Upload Guidelines -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-info text-white">
+                        <h6 class="mb-0"><i class="fas fa-lightbulb me-2"></i>Panduan Upload</h6>
+                    </div>
+                    <div class="card-body">
+                        <h6 class="fw-bold">Format File yang Didukung:</h6>
+                        <ul class="small mb-3">
+                            <li><strong>TXT:</strong> File teks biasa</li>
+                            <li><strong>PDF:</strong> Dokumen PDF</li>
+                            <li><strong>DOCX:</strong> Dokumen Microsoft Word</li>
+                            <li><strong>CSV:</strong> Data tabular</li>
+                            <li><strong>JSON:</strong> Data terstruktur</li>
+                            <li><strong>XLSX:</strong> Spreadsheet Excel</li>
+                        </ul>
+                        
+                        <h6 class="fw-bold">Tips untuk Upload yang Optimal:</h6>
+                        <ul class="small mb-3">
+                            <li>Pastikan data berkualitas tinggi dan relevan</li>
+                            <li>Gunakan nama file yang deskriptif</li>
+                            <li>Periksa format dan struktur data</li>
+                            <li>Tambahkan tags untuk memudahkan pencarian</li>
+                        </ul>
+                        
+                        <h6 class="fw-bold">Batasan:</h6>
+                        <ul class="small mb-0">
+                            <li>Maksimal ukuran file: 50MB</li>
+                            <li>Maksimal 10 tags per upload</li>
+                            <li>Judul harus unik</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <!-- Data Type Info -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-secondary text-white">
+                        <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Tipe Data</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="small">
+                            <div class="mb-2">
+                                <strong>Knowledge Base:</strong> Dokumen, FAQ, panduan
+                            </div>
+                            <div class="mb-2">
+                                <strong>NLP Training:</strong> Data untuk analisis teks
+                            </div>
+                            <div class="mb-2">
+                                <strong>Budget Data:</strong> Data keuangan dan anggaran
+                            </div>
+                            <div class="mb-2">
+                                <strong>HR Policies:</strong> Kebijakan dan prosedur HR
+                            </div>
+                            <div class="mb-0">
+                                <strong>Employee Data:</strong> Data karyawan (anonymized)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">
+                                <i class="fas fa-upload me-2"></i>Upload Training Data
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="resetForm()">
+                                <i class="fas fa-undo me-2"></i>Reset Form
+                            </button>
+                        </div>
+                        
+                        <div class="progress-container">
+                            <div class="progress mt-3">
+                                <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                            </div>
+                            <div class="text-center mt-2">
+                                <small class="text-muted">Uploading...</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// File upload handling
+const fileInput = document.getElementById('{{ form.file.id_for_label }}');
+const fileUploadArea = document.getElementById('fileUploadArea');
+const fileInfo = document.getElementById('fileInfo');
+const fileName = document.getElementById('fileName');
+const fileSize = document.getElementById('fileSize');
+const fileType = document.getElementById('fileType');
+const removeFileBtn = document.getElementById('removeFile');
+const submitBtn = document.getElementById('submitBtn');
+
+// Hide the default file input
+fileInput.style.display = 'none';
+
+// Click to select file
+fileUploadArea.addEventListener('click', function() {
+    fileInput.click();
+});
+
+// Drag and drop functionality
+fileUploadArea.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    fileUploadArea.classList.add('dragover');
+});
+
+fileUploadArea.addEventListener('dragleave', function(e) {
+    e.preventDefault();
+    fileUploadArea.classList.remove('dragover');
+});
+
+fileUploadArea.addEventListener('drop', function(e) {
+    e.preventDefault();
+    fileUploadArea.classList.remove('dragover');
+    
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+        fileInput.files = files;
+        handleFileSelect(files[0]);
+    }
+});
+
+// File input change
+fileInput.addEventListener('change', function() {
+    if (this.files.length > 0) {
+        handleFileSelect(this.files[0]);
+    }
+});
+
+// Handle file selection
+function handleFileSelect(file) {
+    fileName.textContent = file.name;
+    fileSize.textContent = formatFileSize(file.size);
+    fileType.textContent = file.type || 'Unknown type';
+    
+    fileUploadArea.style.display = 'none';
+    fileInfo.style.display = 'block';
+}
+
+// Remove file
+removeFileBtn.addEventListener('click', function() {
+    fileInput.value = '';
+    fileUploadArea.style.display = 'block';
+    fileInfo.style.display = 'none';
+});
+
+// Format file size
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// Form submission with progress
+document.getElementById('uploadForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const progressContainer = document.querySelector('.progress-container');
+    const progressBar = document.querySelector('.progress-bar');
+    
+    // Show progress
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Uploading...';
+    progressContainer.style.display = 'block';
+    
+    // Create XMLHttpRequest for progress tracking
+    const xhr = new XMLHttpRequest();
+    
+    xhr.upload.addEventListener('progress', function(e) {
+        if (e.lengthComputable) {
+            const percentComplete = (e.loaded / e.total) * 100;
+            progressBar.style.width = percentComplete + '%';
+            progressBar.textContent = Math.round(percentComplete) + '%';
+        }
+    });
+    
+    xhr.addEventListener('load', function() {
+        if (xhr.status === 200) {
+            // Success - redirect will be handled by Django
+            window.location.href = xhr.responseURL || '{% url "ai_services:training_data_dashboard" %}';
+        } else {
+            // Error
+            alert('Upload failed. Please try again.');
+            resetSubmitButton();
+        }
+    });
+    
+    xhr.addEventListener('error', function() {
+        alert('Upload failed. Please check your connection and try again.');
+        resetSubmitButton();
+    });
+    
+    xhr.open('POST', this.action);
+    xhr.setRequestHeader('X-CSRFToken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+    xhr.send(formData);
+});
+
+function resetSubmitButton() {
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = '<i class="fas fa-upload me-2"></i>Upload Training Data';
+    document.querySelector('.progress-container').style.display = 'none';
+}
+
+// Reset form
+function resetForm() {
+    if (confirm('Reset semua data yang telah diisi?')) {
+        document.getElementById('uploadForm').reset();
+        fileUploadArea.style.display = 'block';
+        fileInfo.style.display = 'none';
+        resetSubmitButton();
+    }
+}
+
+// Form validation
+function validateForm() {
+    const requiredFields = ['{{ form.title.id_for_label }}', '{{ form.description.id_for_label }}', '{{ form.data_type.id_for_label }}', '{{ form.target_service.id_for_label }}'];
+    let isValid = true;
+    
+    requiredFields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (!field.value.trim()) {
+            field.classList.add('is-invalid');
+            isValid = false;
+        } else {
+            field.classList.remove('is-invalid');
+        }
+    });
+    
+    return isValid;
+}
+
+// Real-time validation
+document.querySelectorAll('input[required], select[required], textarea[required]').forEach(field => {
+    field.addEventListener('blur', function() {
+        if (!this.value.trim()) {
+            this.classList.add('is-invalid');
+        } else {
+            this.classList.remove('is-invalid');
+        }
+    });
+});
+</script>
+{% endblock %}

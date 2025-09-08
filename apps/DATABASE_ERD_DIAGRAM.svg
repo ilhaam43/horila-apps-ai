@@ -1,0 +1,330 @@
+<svg width="1400" height="1000" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .entity-box { fill: #f8f9fa; stroke: #343a40; stroke-width: 2; }
+      .entity-title { fill: #495057; font-family: Arial, sans-serif; font-size: 14px; font-weight: bold; }
+      .entity-attr { fill: #6c757d; font-family: Arial, sans-serif; font-size: 11px; }
+      .pk-attr { fill: #dc3545; font-weight: bold; }
+      .fk-attr { fill: #007bff; font-style: italic; }
+      .relation-line { stroke: #6c757d; stroke-width: 2; fill: none; }
+      .relation-text { fill: #495057; font-family: Arial, sans-serif; font-size: 10px; }
+      .module-title { fill: #28a745; font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; }
+    </style>
+  </defs>
+  
+  <!-- Title -->
+  <text x="700" y="30" text-anchor="middle" class="module-title" font-size="20">Horilla HR Management System - Entity Relationship Diagram</text>
+  
+  <!-- Base Module -->
+  <text x="50" y="70" class="module-title">Base Module</text>
+  
+  <!-- Company Entity -->
+  <rect x="50" y="80" width="180" height="140" class="entity-box"/>
+  <text x="140" y="100" text-anchor="middle" class="entity-title">Company</text>
+  <line x1="60" y1="105" x2="220" y2="105" stroke="#343a40" stroke-width="1"/>
+  <text x="60" y="120" class="entity-attr pk-attr">+ id: BigAutoField (PK)</text>
+  <text x="60" y="135" class="entity-attr">company: CharField(50)</text>
+  <text x="60" y="150" class="entity-attr">address: TextField(255)</text>
+  <text x="60" y="165" class="entity-attr">country: CharField(50)</text>
+  <text x="60" y="180" class="entity-attr">city: CharField(50)</text>
+  <text x="60" y="195" class="entity-attr">is_active: BooleanField</text>
+  <text x="60" y="210" class="entity-attr">created_at: DateTimeField</text>
+  
+  <!-- Department Entity -->
+  <rect x="280" y="80" width="180" height="120" class="entity-box"/>
+  <text x="370" y="100" text-anchor="middle" class="entity-title">Department</text>
+  <line x1="290" y1="105" x2="450" y2="105" stroke="#343a40" stroke-width="1"/>
+  <text x="290" y="120" class="entity-attr pk-attr">+ id: BigAutoField (PK)</text>
+  <text x="290" y="135" class="entity-attr">department: CharField(50)</text>
+  <text x="290" y="150" class="entity-attr">is_active: BooleanField</text>
+  <text x="290" y="165" class="entity-attr">created_at: DateTimeField</text>
+  <text x="290" y="180" class="entity-attr fk-attr">company_id: ManyToMany</text>
+  
+  <!-- JobPosition Entity -->
+  <rect x="510" y="80" width="180" height="140" class="entity-box"/>
+  <text x="600" y="100" text-anchor="middle" class="entity-title">JobPosition</text>
+  <line x1="520" y1="105" x2="680" y2="105" stroke="#343a40" stroke-width="1"/>
+  <text x="520" y="120" class="entity-attr pk-attr">+ id: BigAutoField (PK)</text>
+  <text x="520" y="135" class="entity-attr">job_position: CharField(50)</text>
+  <text x="520" y="150" class="entity-attr fk-attr">department_id: ForeignKey</text>
+  <text x="520" y="165" class="entity-attr">is_active: BooleanField</text>
+  <text x="520" y="180" class="entity-attr">created_at: DateTimeField</text>
+  <text x="520" y="195" class="entity-attr fk-attr">company_id: ManyToMany</text>
+  
+  <!-- JobRole Entity -->
+  <rect x="740" y="80" width="180" height="140" class="entity-box"/>
+  <text x="830" y="100" text-anchor="middle" class="entity-title">JobRole</text>
+  <line x1="750" y1="105" x2="910" y2="105" stroke="#343a40" stroke-width="1"/>
+  <text x="750" y="120" class="entity-attr pk-attr">+ id: BigAutoField (PK)</text>
+  <text x="750" y="135" class="entity-attr">job_role: CharField(50)</text>
+  <text x="750" y="150" class="entity-attr fk-attr">job_position_id: ForeignKey</text>
+  <text x="750" y="165" class="entity-attr">is_active: BooleanField</text>
+  <text x="750" y="180" class="entity-attr">created_at: DateTimeField</text>
+  <text x="750" y="195" class="entity-attr fk-attr">company_id: ManyToMany</text>
+  
+  <!-- Employee Module -->
+  <text x="50" y="280" class="module-title">Employee Module</text>
+  
+  <!-- Employee Entity -->
+  <rect x="50" y="290" width="200" height="200" class="entity-box"/>
+  <text x="150" y="310" text-anchor="middle" class="entity-title">Employee</text>
+  <line x1="60" y1="315" x2="240" y2="315" stroke="#343a40" stroke-width="1"/>
+  <text x="60" y="330" class="entity-attr pk-attr">+ id: BigAutoField (PK)</text>
+  <text x="60" y="345" class="entity-attr">badge_id: CharField(50)</text>
+  <text x="60" y="360" class="entity-attr fk-attr">employee_user_id: OneToOne</text>
+  <text x="60" y="375" class="entity-attr">employee_first_name: CharField</text>
+  <text x="60" y="390" class="entity-attr">employee_last_name: CharField</text>
+  <text x="60" y="405" class="entity-attr">email: EmailField (UNIQUE)</text>
+  <text x="60" y="420" class="entity-attr">phone: CharField(25)</text>
+  <text x="60" y="435" class="entity-attr">address: TextField(200)</text>
+  <text x="60" y="450" class="entity-attr">dob: DateField</text>
+  <text x="60" y="465" class="entity-attr">gender: CharField(10)</text>
+  <text x="60" y="480" class="entity-attr">is_active: BooleanField</text>
+  
+  <!-- Attendance Module -->
+  <text x="300" y="280" class="module-title">Attendance Module</text>
+  
+  <!-- Attendance Entity -->
+  <rect x="300" y="290" width="200" height="180" class="entity-box"/>
+  <text x="400" y="310" text-anchor="middle" class="entity-title">Attendance</text>
+  <line x1="310" y1="315" x2="490" y2="315" stroke="#343a40" stroke-width="1"/>
+  <text x="310" y="330" class="entity-attr pk-attr">+ id: BigAutoField (PK)</text>
+  <text x="310" y="345" class="entity-attr fk-attr">employee_id: ForeignKey</text>
+  <text x="310" y="360" class="entity-attr">attendance_date: DateField</text>
+  <text x="310" y="375" class="entity-attr">attendance_clock_in: TimeField</text>
+  <text x="310" y="390" class="entity-attr">attendance_clock_out: TimeField</text>
+  <text x="310" y="405" class="entity-attr">attendance_worked_hour: CharField</text>
+  <text x="310" y="420" class="entity-attr">attendance_overtime: CharField</text>
+  <text x="310" y="435" class="entity-attr">attendance_validated: Boolean</text>
+  <text x="310" y="450" class="entity-attr">is_active: BooleanField</text>
+  
+  <!-- AttendanceActivity Entity -->
+  <rect x="550" y="290" width="200" height="160" class="entity-box"/>
+  <text x="650" y="310" text-anchor="middle" class="entity-title">AttendanceActivity</text>
+  <line x1="560" y1="315" x2="740" y2="315" stroke="#343a40" stroke-width="1"/>
+  <text x="560" y="330" class="entity-attr pk-attr">+ id: BigAutoField (PK)</text>
+  <text x="560" y="345" class="entity-attr fk-attr">employee_id: ForeignKey</text>
+  <text x="560" y="360" class="entity-attr">attendance_date: DateField</text>
+  <text x="560" y="375" class="entity-attr">clock_in: TimeField</text>
+  <text x="560" y="390" class="entity-attr">clock_out: TimeField</text>
+  <text x="560" y="405" class="entity-attr">in_datetime: DateTimeField</text>
+  <text x="560" y="420" class="entity-attr">out_datetime: DateTimeField</text>
+  <text x="560" y="435" class="entity-attr">is_active: BooleanField</text>
+  
+  <!-- Leave Module -->
+  <text x="800" y="280" class="module-title">Leave Module</text>
+  
+  <!-- LeaveType Entity -->
+  <rect x="800" y="290" width="180" height="180" class="entity-box"/>
+  <text x="890" y="310" text-anchor="middle" class="entity-title">LeaveType</text>
+  <line x1="810" y1="315" x2="970" y2="315" stroke="#343a40" stroke-width="1"/>
+  <text x="810" y="330" class="entity-attr pk-attr">+ id: BigAutoField (PK)</text>
+  <text x="810" y="345" class="entity-attr">name: CharField(30)</text>
+  <text x="810" y="360" class="entity-attr">color: CharField(30)</text>
+  <text x="810" y="375" class="entity-attr">payment: CharField(30)</text>
+  <text x="810" y="390" class="entity-attr">total_days: FloatField</text>
+  <text x="810" y="405" class="entity-attr">reset: BooleanField</text>
+  <text x="810" y="420" class="entity-attr">is_encashable: BooleanField</text>
+  <text x="810" y="435" class="entity-attr">carryforward_type: CharField</text>
+  <text x="810" y="450" class="entity-attr">is_active: BooleanField</text>
+  
+  <!-- Recruitment Module -->
+  <text x="1020" y="280" class="module-title">Recruitment Module</text>
+  
+  <!-- Recruitment Entity -->
+  <rect x="1020" y="290" width="200" height="180" class="entity-box"/>
+  <text x="1120" y="310" text-anchor="middle" class="entity-title">Recruitment</text>
+  <line x1="1030" y1="315" x2="1210" y2="315" stroke="#343a40" stroke-width="1"/>
+  <text x="1030" y="330" class="entity-attr pk-attr">+ id: BigAutoField (PK)</text>
+  <text x="1030" y="345" class="entity-attr">title: CharField(50)</text>
+  <text x="1030" y="360" class="entity-attr">description: TextField</text>
+  <text x="1030" y="375" class="entity-attr">vacancy: IntegerField</text>
+  <text x="1030" y="390" class="entity-attr fk-attr">company_id: ForeignKey</text>
+  <text x="1030" y="405" class="entity-attr">start_date: DateField</text>
+  <text x="1030" y="420" class="entity-attr">end_date: DateField</text>
+  <text x="1030" y="435" class="entity-attr">closed: BooleanField</text>
+  <text x="1030" y="450" class="entity-attr">is_published: BooleanField</text>
+  
+  <!-- Payroll Module -->
+  <text x="50" y="530" class="module-title">Payroll Module</text>
+  
+  <!-- Allowance Entity -->
+  <rect x="50" y="540" width="180" height="160" class="entity-box"/>
+  <text x="140" y="560" text-anchor="middle" class="entity-title">Allowance</text>
+  <line x1="60" y1="565" x2="220" y2="565" stroke="#343a40" stroke-width="1"/>
+  <text x="60" y="580" class="entity-attr pk-attr">+ id: BigAutoField (PK)</text>
+  <text x="60" y="595" class="entity-attr">title: CharField(255)</text>
+  <text x="60" y="610" class="entity-attr">is_taxable: BooleanField</text>
+  <text x="60" y="625" class="entity-attr">is_fixed: BooleanField</text>
+  <text x="60" y="640" class="entity-attr">amount: FloatField</text>
+  <text x="60" y="655" class="entity-attr">rate: FloatField</text>
+  <text x="60" y="670" class="entity-attr fk-attr">company_id: ForeignKey</text>
+  <text x="60" y="685" class="entity-attr">is_active: BooleanField</text>
+  
+  <!-- Deduction Entity -->
+  <rect x="280" y="540" width="180" height="160" class="entity-box"/>
+  <text x="370" y="560" text-anchor="middle" class="entity-title">Deduction</text>
+  <line x1="290" y1="565" x2="450" y2="565" stroke="#343a40" stroke-width="1"/>
+  <text x="290" y="580" class="entity-attr pk-attr">+ id: BigAutoField (PK)</text>
+  <text x="290" y="595" class="entity-attr">title: CharField(255)</text>
+  <text x="290" y="610" class="entity-attr">is_tax: BooleanField</text>
+  <text x="290" y="625" class="entity-attr">is_pretax: BooleanField</text>
+  <text x="290" y="640" class="entity-attr">amount: FloatField</text>
+  <text x="290" y="655" class="entity-attr">rate: FloatField</text>
+  <text x="290" y="670" class="entity-attr fk-attr">company_id: ForeignKey</text>
+  <text x="290" y="685" class="entity-attr">is_active: BooleanField</text>
+  
+  <!-- Budget Module -->
+  <text x="510" y="530" class="module-title">Budget Module</text>
+  
+  <!-- BudgetCategory Entity -->
+  <rect x="510" y="540" width="180" height="140" class="entity-box"/>
+  <text x="600" y="560" text-anchor="middle" class="entity-title">BudgetCategory</text>
+  <line x1="520" y1="565" x2="680" y2="565" stroke="#343a40" stroke-width="1"/>
+  <text x="520" y="580" class="entity-attr pk-attr">+ id: BigAutoField (PK)</text>
+  <text x="520" y="595" class="entity-attr">name: CharField(100) (UNIQUE)</text>
+  <text x="520" y="610" class="entity-attr">description: TextField</text>
+  <text x="520" y="625" class="entity-attr fk-attr">parent_category: ForeignKey</text>
+  <text x="520" y="640" class="entity-attr">is_active: BooleanField</text>
+  <text x="520" y="655" class="entity-attr">created_at: DateTimeField</text>
+  <text x="520" y="670" class="entity-attr">updated_at: DateTimeField</text>
+  
+  <!-- Knowledge Module -->
+  <text x="740" y="530" class="module-title">Knowledge Module</text>
+  
+  <!-- DocumentCategory Entity -->
+  <rect x="740" y="540" width="200" height="140" class="entity-box"/>
+  <text x="840" y="560" text-anchor="middle" class="entity-title">DocumentCategory</text>
+  <line x1="750" y1="565" x2="930" y2="565" stroke="#343a40" stroke-width="1"/>
+  <text x="750" y="580" class="entity-attr pk-attr">+ id: BigAutoField (PK)</text>
+  <text x="750" y="595" class="entity-attr">name: CharField(100) (UNIQUE)</text>
+  <text x="750" y="610" class="entity-attr">description: TextField</text>
+  <text x="750" y="625" class="entity-attr">color: CharField(7)</text>
+  <text x="750" y="640" class="entity-attr fk-attr">parent: ForeignKey</text>
+  <text x="750" y="655" class="entity-attr">is_active: BooleanField</text>
+  <text x="750" y="670" class="entity-attr">created_at: DateTimeField</text>
+  
+  <!-- AI/ML Module -->
+  <text x="980" y="530" class="module-title">AI/ML Module</text>
+  
+  <!-- NLPModel Entity -->
+  <rect x="980" y="540" width="180" height="140" class="entity-box"/>
+  <text x="1070" y="560" text-anchor="middle" class="entity-title">NLPModel</text>
+  <line x1="990" y1="565" x2="1150" y2="565" stroke="#343a40" stroke-width="1"/>
+  <text x="990" y="580" class="entity-attr pk-attr">+ id: BigAutoField (PK)</text>
+  <text x="990" y="595" class="entity-attr">name: CharField(200) (UNIQUE)</text>
+  <text x="990" y="610" class="entity-attr">model_type: CharField(50)</text>
+  <text x="990" y="625" class="entity-attr">framework: CharField(50)</text>
+  <text x="990" y="640" class="entity-attr">model_path: CharField(500)</text>
+  <text x="990" y="655" class="entity-attr">config: JSONField</text>
+  <text x="990" y="670" class="entity-attr">is_active: BooleanField</text>
+  
+  <!-- OllamaModel Entity -->
+  <rect x="1200" y="540" width="180" height="140" class="entity-box"/>
+  <text x="1290" y="560" text-anchor="middle" class="entity-title">OllamaModel</text>
+  <line x1="1210" y1="565" x2="1370" y2="565" stroke="#343a40" stroke-width="1"/>
+  <text x="1210" y="580" class="entity-attr pk-attr">+ id: BigAutoField (PK)</text>
+  <text x="1210" y="595" class="entity-attr">name: CharField(100) (UNIQUE)</text>
+  <text x="1210" y="610" class="entity-attr">model_name: CharField(100)</text>
+  <text x="1210" y="625" class="entity-attr">description: TextField</text>
+  <text x="1210" y="640" class="entity-attr">task_type: CharField(50)</text>
+  <text x="1210" y="655" class="entity-attr">is_active: BooleanField</text>
+  <text x="1210" y="670" class="entity-attr">created_at: DateTimeField</text>
+  
+  <!-- Relationships -->
+  
+  <!-- Company to Department (1:M) -->
+  <path d="M 230 150 L 280 150" class="relation-line" marker-end="url(#arrowhead)"/>
+  <text x="255" y="145" class="relation-text">1:M</text>
+  
+  <!-- Department to JobPosition (1:M) -->
+  <path d="M 460 150 L 510 150" class="relation-line" marker-end="url(#arrowhead)"/>
+  <text x="485" y="145" class="relation-text">1:M</text>
+  
+  <!-- JobPosition to JobRole (1:M) -->
+  <path d="M 690 150 L 740 150" class="relation-line" marker-end="url(#arrowhead)"/>
+  <text x="715" y="145" class="relation-text">1:M</text>
+  
+  <!-- Employee to Attendance (1:M) -->
+  <path d="M 250 390 L 300 390" class="relation-line" marker-end="url(#arrowhead)"/>
+  <text x="275" y="385" class="relation-text">1:M</text>
+  
+  <!-- Employee to AttendanceActivity (1:M) -->
+  <path d="M 250 350 L 550 350" class="relation-line" marker-end="url(#arrowhead)"/>
+  <text x="400" y="345" class="relation-text">1:M</text>
+  
+  <!-- Company to Recruitment (1:M) -->
+  <path d="M 230 120 Q 625 50 1030 390" class="relation-line" marker-end="url(#arrowhead)" stroke-dasharray="5,5"/>
+  <text x="625" y="45" class="relation-text">1:M</text>
+  
+  <!-- Company to Allowance (1:M) -->
+  <path d="M 140 220 L 140 540" class="relation-line" marker-end="url(#arrowhead)"/>
+  <text x="145" y="380" class="relation-text">1:M</text>
+  
+  <!-- Company to Deduction (1:M) -->
+  <path d="M 200 220 Q 240 380 280 610" class="relation-line" marker-end="url(#arrowhead)" stroke-dasharray="5,5"/>
+  <text x="240" y="380" class="relation-text">1:M</text>
+  
+  <!-- BudgetCategory Self-Reference (1:M) -->
+  <path d="M 600 540 Q 650 520 650 540" class="relation-line" marker-end="url(#arrowhead)"/>
+  <text x="655" y="525" class="relation-text">1:M (self)</text>
+  
+  <!-- DocumentCategory Self-Reference (1:M) -->
+  <path d="M 840 540 Q 890 520 890 540" class="relation-line" marker-end="url(#arrowhead)"/>
+  <text x="895" y="525" class="relation-text">1:M (self)</text>
+  
+  <!-- Arrow marker definition -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#6c757d"/>
+    </marker>
+  </defs>
+  
+  <!-- Legend -->
+  <rect x="50" y="750" width="300" height="200" fill="#f8f9fa" stroke="#343a40" stroke-width="1"/>
+  <text x="200" y="770" text-anchor="middle" class="entity-title">Legend</text>
+  <line x1="60" y1="775" x2="340" y2="775" stroke="#343a40" stroke-width="1"/>
+  
+  <text x="60" y="795" class="entity-attr pk-attr">+ Primary Key (PK)</text>
+  <text x="60" y="810" class="entity-attr fk-attr">Foreign Key (FK)</text>
+  <text x="60" y="825" class="entity-attr">Regular Attribute</text>
+  
+  <line x1="60" y1="840" x2="100" y2="840" class="relation-line"/>
+  <text x="110" y="845" class="relation-text">One-to-Many Relationship</text>
+  
+  <line x1="60" y1="860" x2="100" y2="860" class="relation-line" stroke-dasharray="5,5"/>
+  <text x="110" y="865" class="relation-text">Many-to-Many Relationship</text>
+  
+  <text x="60" y="885" class="relation-text">Kardinalitas:</text>
+  <text x="60" y="900" class="relation-text">1:1 = One-to-One</text>
+  <text x="60" y="915" class="relation-text">1:M = One-to-Many</text>
+  <text x="60" y="930" class="relation-text">M:M = Many-to-Many</text>
+  
+  <!-- Database Info -->
+  <rect x="400" y="750" width="350" height="120" fill="#e9ecef" stroke="#343a40" stroke-width="1"/>
+  <text x="575" y="770" text-anchor="middle" class="entity-title">Database Information</text>
+  <line x1="410" y1="775" x2="740" y2="775" stroke="#343a40" stroke-width="1"/>
+  
+  <text x="410" y="795" class="entity-attr">Database Type: SQLite (Dev), PostgreSQL/MySQL (Prod)</text>
+  <text x="410" y="810" class="entity-attr">ORM: Django ORM</text>
+  <text x="410" y="825" class="entity-attr">Total Tables: 100+</text>
+  <text x="410" y="840" class="entity-attr">Main Modules: 15+</text>
+  <text x="410" y="855" class="entity-attr">Created: 2024</text>
+  
+  <!-- Notes -->
+  <rect x="800" y="750" width="550" height="200" fill="#fff3cd" stroke="#856404" stroke-width="1"/>
+  <text x="1075" y="770" text-anchor="middle" class="entity-title" fill="#856404">Important Notes</text>
+  <line x1="810" y1="775" x2="1340" y2="775" stroke="#856404" stroke-width="1"/>
+  
+  <text x="810" y="795" class="entity-attr" fill="#856404">1. Semua tabel menggunakan BigAutoField sebagai Primary Key</text>
+  <text x="810" y="810" class="entity-attr" fill="#856404">2. Sebagian besar tabel memiliki audit trail (created_at, is_active)</text>
+  <text x="810" y="825" class="entity-attr" fill="#856404">3. Foreign Key constraints menggunakan PROTECT, CASCADE, atau SET_NULL</text>
+  <text x="810" y="840" class="entity-attr" fill="#856404">4. Unique constraints diterapkan pada field kritis (email, name)</text>
+  <text x="810" y="855" class="entity-attr" fill="#856404">5. Many-to-Many relationships menggunakan intermediate tables</text>
+  <text x="810" y="870" class="entity-attr" fill="#856404">6. JSON fields digunakan untuk data fleksibel (config, additional_info)</text>
+  <text x="810" y="885" class="entity-attr" fill="#856404">7. Self-referencing relationships untuk hierarchical data</text>
+  <text x="810" y="900" class="entity-attr" fill="#856404">8. Soft delete menggunakan is_active field</text>
+  <text x="810" y="915" class="entity-attr" fill="#856404">9. Indexing otomatis pada PK, FK, dan unique fields</text>
+  <text x="810" y="930" class="entity-attr" fill="#856404">10. Support untuk multi-company dan multi-tenant architecture</text>
+  
+</svg>

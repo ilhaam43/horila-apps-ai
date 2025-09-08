@@ -1,0 +1,738 @@
+{% extends 'knowledge/base_knowledge.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}{% if object %}Edit Document{% else %}Create Document{% endif %} - Knowledge Base{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/knowledge.css' %}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/summernote@0.8.18/dist/summernote-bs4.min.css">
+<style>
+.form-section {
+    background: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    padding: 2rem;
+    margin-bottom: 2rem;
+}
+
+.form-section h5 {
+    color: #495057;
+    border-bottom: 2px solid #e9ecef;
+    padding-bottom: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.file-upload-zone {
+    border: 2px dashed #dee2e6;
+    border-radius: 0.5rem;
+    padding: 3rem 2rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    background: #f8f9fa;
+}
+
+.file-upload-zone:hover {
+    border-color: #007bff;
+    background: rgba(0, 123, 255, 0.05);
+}
+
+.file-upload-zone.dragover {
+    border-color: #007bff;
+    background: rgba(0, 123, 255, 0.1);
+    transform: scale(1.02);
+}
+
+.file-preview {
+    background: #f8f9fa;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-top: 1rem;
+}
+
+.tag-input-container {
+    position: relative;
+}
+
+.tag-suggestions {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 0.25rem;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.tag-suggestion {
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    border-bottom: 1px solid #f8f9fa;
+}
+
+.tag-suggestion:hover {
+    background: #f8f9fa;
+}
+
+.tag-suggestion:last-child {
+    border-bottom: none;
+}
+
+.selected-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.selected-tag {
+    background: #007bff;
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+}
+
+.selected-tag .remove-tag {
+    margin-left: 0.5rem;
+    cursor: pointer;
+    opacity: 0.7;
+}
+
+.selected-tag .remove-tag:hover {
+    opacity: 1;
+}
+
+.preview-container {
+    background: #f8f9fa;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    margin-top: 1rem;
+}
+
+.ai-processing-indicator {
+    display: none;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    margin-top: 1rem;
+}
+
+.progress-bar-animated {
+    animation: progress-bar-stripes 1s linear infinite;
+}
+
+@keyframes progress-bar-stripes {
+    0% {
+        background-position: 1rem 0;
+    }
+    100% {
+        background-position: 0 0;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800">
+                {% if object %}
+                    <i class="fas fa-edit mr-2"></i> Edit Document
+                {% else %}
+                    <i class="fas fa-plus mr-2"></i> Create New Document
+                {% endif %}
+            </h1>
+            <p class="mb-0 text-muted">
+                {% if object %}
+                    Update document information and content
+                {% else %}
+                    Add a new document to your knowledge base
+                {% endif %}
+            </p>
+        </div>
+        <div>
+            <a href="{% if object %}{% url 'knowledge:document_detail' object.id %}{% else %}{% url 'knowledge:document_list' %}{% endif %}" 
+               class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left mr-1"></i> Back
+            </a>
+        </div>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" id="document-form">
+        {% csrf_token %}
+        
+        <div class="row">
+            <!-- Main Form -->
+            <div class="col-lg-8">
+                <!-- Basic Information -->
+                <div class="form-section">
+                    <h5><i class="fas fa-info-circle mr-2"></i> Basic Information</h5>
+                    
+                    <div class="row">
+                        <div class="col-md-8">
+                            {{ form.title|as_crispy_field }}
+                        </div>
+                        <div class="col-md-4">
+                            {{ form.status|as_crispy_field }}
+                        </div>
+                    </div>
+                    
+                    {{ form.description|as_crispy_field }}
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            {{ form.category|as_crispy_field }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.language|as_crispy_field }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- File Upload -->
+                <div class="form-section">
+                    <h5><i class="fas fa-upload mr-2"></i> File Upload</h5>
+                    
+                    <div class="file-upload-zone" id="file-upload-zone">
+                        <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
+                        <h4>Drop files here or click to browse</h4>
+                        <p class="text-muted mb-0">
+                            Supported formats: PDF, DOC, DOCX, TXT, HTML, XLS, XLSX<br>
+                            Maximum file size: 50MB
+                        </p>
+                        {{ form.file }}
+                    </div>
+                    
+                    <div id="file-preview" class="file-preview" style="display: none;">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-file fa-2x text-primary mr-3"></i>
+                                <div>
+                                    <div class="font-weight-bold" id="file-name"></div>
+                                    <small class="text-muted" id="file-size"></small>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-danger" id="remove-file">
+                                <i class="fas fa-times"></i> Remove
+                            </button>
+                        </div>
+                    </div>
+                    
+                    {% if object and object.file %}
+                    <div class="alert alert-info mt-3">
+                        <i class="fas fa-info-circle mr-2"></i>
+                        Current file: <strong>{{ object.file.name }}</strong> ({{ object.file_size|filesizeformat }})
+                        <a href="{% url 'knowledge:document_download' object.id %}" class="btn btn-sm btn-outline-primary ml-2">
+                            <i class="fas fa-download"></i> Download
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Content -->
+                <div class="form-section">
+                    <h5><i class="fas fa-edit mr-2"></i> Content</h5>
+                    
+                    <div class="form-group">
+                        <label for="{{ form.content.id_for_label }}">{{ form.content.label }}</label>
+                        {{ form.content }}
+                    </div>
+                    
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <div>
+                            <button type="button" class="btn btn-outline-primary" id="preview-content">
+                                <i class="fas fa-eye mr-1"></i> Preview
+                            </button>
+                            <button type="button" class="btn btn-outline-info" id="ai-enhance">
+                                <i class="fas fa-robot mr-1"></i> AI Enhance
+                            </button>
+                        </div>
+                        <small class="text-muted">
+                            <span id="word-count">0</span> words, <span id="char-count">0</span> characters
+                        </small>
+                    </div>
+                    
+                    <div id="content-preview" class="preview-container" style="display: none;">
+                        <h6>Preview</h6>
+                        <div id="preview-content-area"></div>
+                    </div>
+                </div>
+
+                <!-- Tags -->
+                <div class="form-section">
+                    <h5><i class="fas fa-tags mr-2"></i> Tags</h5>
+                    
+                    <div class="tag-input-container">
+                        <input type="text" class="form-control" id="tag-input" placeholder="Type to add tags...">
+                        <div id="tag-suggestions" class="tag-suggestions" style="display: none;"></div>
+                    </div>
+                    
+                    <div id="selected-tags" class="selected-tags">
+                        {% if object %}
+                            {% for tag in object.tags.all %}
+                            <span class="selected-tag" data-tag="{{ tag.name }}">
+                                {{ tag.name }}
+                                <span class="remove-tag">&times;</span>
+                            </span>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                    
+                    <input type="hidden" name="tags" id="tags-input" value="{% if object %}{% for tag in object.tags.all %}{{ tag.name }}{% if not forloop.last %},{% endif %}{% endfor %}{% endif %}">
+                    
+                    <small class="form-text text-muted mt-2">
+                        Press Enter or comma to add tags. Click on suggested tags to add them quickly.
+                    </small>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="col-lg-4">
+                <!-- Access Control -->
+                <div class="form-section">
+                    <h5><i class="fas fa-lock mr-2"></i> Access Control</h5>
+                    
+                    {{ form.access_level|as_crispy_field }}
+                    {{ form.is_featured|as_crispy_field }}
+                    {{ form.allow_comments|as_crispy_field }}
+                </div>
+
+                <!-- AI Processing -->
+                <div class="form-section">
+                    <h5><i class="fas fa-robot mr-2"></i> AI Processing</h5>
+                    
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="enable-ai-processing" checked>
+                        <label class="form-check-label" for="enable-ai-processing">
+                            Enable AI analysis after saving
+                        </label>
+                    </div>
+                    
+                    <div class="ai-processing-indicator" id="ai-processing-indicator">
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="spinner-border spinner-border-sm mr-2" role="status"></div>
+                            <span>AI is analyzing your document...</span>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 100%"></div>
+                        </div>
+                    </div>
+                    
+                    {% if object and object.description %}
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-lightbulb mr-1"></i> Description</h6>
+                        <p class="mb-0">{{ object.description|truncatechars:200 }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Document Stats -->
+                {% if object %}
+                <div class="form-section">
+                    <h5><i class="fas fa-chart-bar mr-2"></i> Statistics</h5>
+                    
+                    <div class="row text-center">
+                        <div class="col-4">
+                            <div class="h4 mb-0 text-primary">{{ object.view_count }}</div>
+                            <small class="text-muted">Views</small>
+                        </div>
+                        <div class="col-4">
+                            <div class="h4 mb-0 text-success">{{ object.download_count }}</div>
+                            <small class="text-muted">Downloads</small>
+                        </div>
+                        <div class="col-4">
+                            <div class="h4 mb-0 text-info">{{ object.comments.count }}</div>
+                            <small class="text-muted">Comments</small>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="small text-muted">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Created:</span>
+                            <span>{{ object.created_at|date:"M d, Y" }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span>Updated:</span>
+                            <span>{{ object.updated_at|date:"M d, Y" }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>File Size:</span>
+                            <span>{{ object.file_size|filesizeformat }}</span>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Quick Actions -->
+                <div class="form-section">
+                    <h5><i class="fas fa-bolt mr-2"></i> Actions</h5>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary mb-2">
+                            <i class="fas fa-save mr-1"></i> 
+                            {% if object %}Update Document{% else %}Create Document{% endif %}
+                        </button>
+                        
+                        <button type="button" class="btn btn-outline-secondary mb-2" id="save-draft">
+                            <i class="fas fa-file-alt mr-1"></i> Save as Draft
+                        </button>
+                        
+                        {% if object %}
+                        <a href="{% url 'knowledge:document_detail' object.id %}" class="btn btn-outline-info mb-2">
+                            <i class="fas fa-eye mr-1"></i> View Document
+                        </a>
+                        {% endif %}
+                        
+                        <button type="button" class="btn btn-outline-warning" id="auto-save-toggle">
+                            <i class="fas fa-clock mr-1"></i> 
+                            <span id="auto-save-text">Enable Auto-save</span>
+                        </button>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            Auto-save every 30 seconds when enabled
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Notifications Container -->
+<div id="notifications-container" class="position-fixed" style="top: 1rem; right: 1rem; z-index: 1050;"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/summernote@0.8.18/dist/summernote-bs4.min.js"></script>
+<script src="{% static 'js/knowledge.js' %}"></script>
+<script>
+let autoSaveInterval;
+let isAutoSaveEnabled = false;
+
+$(document).ready(function() {
+    initializeEditor();
+    initializeFileUpload();
+    initializeTagInput();
+    bindFormEvents();
+    updateWordCount();
+});
+
+function initializeEditor() {
+    $('#id_content').summernote({
+        height: 400,
+        toolbar: [
+            ['style', ['style']],
+            ['font', ['bold', 'underline', 'clear']],
+            ['fontname', ['fontname']],
+            ['color', ['color']],
+            ['para', ['ul', 'ol', 'paragraph']],
+            ['table', ['table']],
+            ['insert', ['link', 'picture', 'video']],
+            ['view', ['fullscreen', 'codeview', 'help']]
+        ],
+        callbacks: {
+            onChange: function(contents, $editable) {
+                updateWordCount();
+                if (isAutoSaveEnabled) {
+                    clearTimeout(autoSaveInterval);
+                    autoSaveInterval = setTimeout(autoSave, 30000);
+                }
+            }
+        }
+    });
+}
+
+function initializeFileUpload() {
+    const uploadZone = $('#file-upload-zone');
+    const fileInput = $('#id_file');
+    const filePreview = $('#file-preview');
+    
+    // Drag and drop
+    uploadZone.on('dragover', function(e) {
+        e.preventDefault();
+        $(this).addClass('dragover');
+    });
+    
+    uploadZone.on('dragleave', function(e) {
+        e.preventDefault();
+        $(this).removeClass('dragover');
+    });
+    
+    uploadZone.on('drop', function(e) {
+        e.preventDefault();
+        $(this).removeClass('dragover');
+        
+        const files = e.originalEvent.dataTransfer.files;
+        if (files.length > 0) {
+            fileInput[0].files = files;
+            showFilePreview(files[0]);
+        }
+    });
+    
+    // Click to upload
+    uploadZone.on('click', function() {
+        fileInput.click();
+    });
+    
+    fileInput.on('change', function() {
+        if (this.files.length > 0) {
+            showFilePreview(this.files[0]);
+        }
+    });
+    
+    // Remove file
+    $('#remove-file').on('click', function() {
+        fileInput.val('');
+        filePreview.hide();
+    });
+}
+
+function showFilePreview(file) {
+    $('#file-name').text(file.name);
+    $('#file-size').text(formatFileSize(file.size));
+    $('#file-preview').show();
+}
+
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function initializeTagInput() {
+    const tagInput = $('#tag-input');
+    const tagSuggestions = $('#tag-suggestions');
+    const selectedTags = $('#selected-tags');
+    const tagsInput = $('#tags-input');
+    
+    let currentTags = tagsInput.val() ? tagsInput.val().split(',') : [];
+    
+    tagInput.on('input', function() {
+        const query = $(this).val().trim();
+        
+        if (query.length >= 2) {
+            fetchTagSuggestions(query);
+        } else {
+            tagSuggestions.hide();
+        }
+    });
+    
+    tagInput.on('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ',') {
+            e.preventDefault();
+            const tag = $(this).val().trim();
+            if (tag && !currentTags.includes(tag)) {
+                addTag(tag);
+                $(this).val('');
+                tagSuggestions.hide();
+            }
+        }
+    });
+    
+    // Remove tag
+    selectedTags.on('click', '.remove-tag', function() {
+        const tag = $(this).parent().data('tag');
+        removeTag(tag);
+    });
+    
+    function addTag(tag) {
+        currentTags.push(tag);
+        updateTagsDisplay();
+        updateTagsInput();
+    }
+    
+    function removeTag(tag) {
+        currentTags = currentTags.filter(t => t !== tag);
+        updateTagsDisplay();
+        updateTagsInput();
+    }
+    
+    function updateTagsDisplay() {
+        selectedTags.empty();
+        currentTags.forEach(tag => {
+            const tagElement = $(`
+                <span class="selected-tag" data-tag="${tag}">
+                    ${tag}
+                    <span class="remove-tag">&times;</span>
+                </span>
+            `);
+            selectedTags.append(tagElement);
+        });
+    }
+    
+    function updateTagsInput() {
+        tagsInput.val(currentTags.join(','));
+    }
+    
+    function fetchTagSuggestions(query) {
+        $.ajax({
+            url: '/knowledge/ajax/tag-suggestions/',
+            method: 'GET',
+            data: { q: query },
+            success: function(data) {
+                displayTagSuggestions(data.suggestions);
+            }
+        });
+    }
+    
+    function displayTagSuggestions(suggestions) {
+        tagSuggestions.empty();
+        
+        suggestions.forEach(suggestion => {
+            if (!currentTags.includes(suggestion.name)) {
+                const item = $(`
+                    <div class="tag-suggestion" data-tag="${suggestion.name}">
+                        ${suggestion.name} (${suggestion.count} documents)
+                    </div>
+                `);
+                
+                item.on('click', function() {
+                    addTag(suggestion.name);
+                    tagInput.val('');
+                    tagSuggestions.hide();
+                });
+                
+                tagSuggestions.append(item);
+            }
+        });
+        
+        if (tagSuggestions.children().length > 0) {
+            tagSuggestions.show();
+        } else {
+            tagSuggestions.hide();
+        }
+    }
+}
+
+function bindFormEvents() {
+    // Preview content
+    $('#preview-content').on('click', function() {
+        const content = $('#id_content').summernote('code');
+        $('#preview-content-area').html(content);
+        $('#content-preview').toggle();
+    });
+    
+    // AI enhance
+    $('#ai-enhance').on('click', function() {
+        const content = $('#id_content').summernote('code');
+        if (content.trim()) {
+            enhanceWithAI(content);
+        } else {
+            KnowledgeSystem.showNotification('Please add some content first', 'warning');
+        }
+    });
+    
+    // Save as draft
+    $('#save-draft').on('click', function() {
+        $('#id_status').val('draft');
+        $('#document-form').submit();
+    });
+    
+    // Auto-save toggle
+    $('#auto-save-toggle').on('click', function() {
+        toggleAutoSave();
+    });
+    
+    // Form submission
+    $('#document-form').on('submit', function(e) {
+        const enableAI = $('#enable-ai-processing').is(':checked');
+        if (enableAI) {
+            $('#ai-processing-indicator').show();
+        }
+    });
+}
+
+function updateWordCount() {
+    const content = $('#id_content').summernote('code');
+    const text = $(content).text();
+    const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+    const chars = text.length;
+    
+    $('#word-count').text(words);
+    $('#char-count').text(chars);
+}
+
+function enhanceWithAI(content) {
+    $.ajax({
+        url: '/knowledge/ajax/ai-enhance/',
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()
+        },
+        data: {
+            content: content
+        },
+        success: function(data) {
+            if (data.enhanced_content) {
+                $('#id_content').summernote('code', data.enhanced_content);
+                KnowledgeSystem.showNotification('Content enhanced with AI', 'success');
+            }
+        },
+        error: function() {
+            KnowledgeSystem.showNotification('AI enhancement failed', 'error');
+        }
+    });
+}
+
+function toggleAutoSave() {
+    isAutoSaveEnabled = !isAutoSaveEnabled;
+    
+    if (isAutoSaveEnabled) {
+        $('#auto-save-text').text('Disable Auto-save');
+        $('#auto-save-toggle').removeClass('btn-outline-warning').addClass('btn-warning');
+        KnowledgeSystem.showNotification('Auto-save enabled', 'success');
+    } else {
+        $('#auto-save-text').text('Enable Auto-save');
+        $('#auto-save-toggle').removeClass('btn-warning').addClass('btn-outline-warning');
+        clearTimeout(autoSaveInterval);
+        KnowledgeSystem.showNotification('Auto-save disabled', 'info');
+    }
+}
+
+function autoSave() {
+    const formData = new FormData($('#document-form')[0]);
+    formData.append('auto_save', 'true');
+    
+    $.ajax({
+        url: $('#document-form').attr('action'),
+        method: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        success: function(data) {
+            if (data.success) {
+                KnowledgeSystem.showNotification('Document auto-saved', 'success');
+            }
+        },
+        error: function() {
+            KnowledgeSystem.showNotification('Auto-save failed', 'error');
+        }
+    });
+}
+
+// Hide tag suggestions when clicking outside
+$(document).on('click', function(e) {
+    if (!$(e.target).closest('.tag-input-container').length) {
+        $('#tag-suggestions').hide();
+    }
+});
+</script>
+{% endblock %}

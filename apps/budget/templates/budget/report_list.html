@@ -1,0 +1,748 @@
+{% extends "budget/base_budget.html" %}
+{% load static %}
+{% load i18n %}
+{% load budget_filters %}
+
+{% block title %}{% trans "Budget Reports" %}{% endblock %}
+
+{% block extra_css %}
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+.report-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+}
+.report-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+.report-icon {
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-size: 24px;
+    color: white;
+}
+.quick-stats {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2>{% trans "Budget Reports" %}</h2>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a href="{% url 'budget:dashboard' %}">{% trans "Budget" %}</a></li>
+                            <li class="breadcrumb-item active">{% trans "Reports" %}</li>
+                        </ol>
+                    </nav>
+                </div>
+                <div>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-outline-primary" onclick="exportReports('pdf')">
+                            <i class="fas fa-file-pdf"></i> {% trans "Export PDF" %}
+                        </button>
+                        <button type="button" class="btn btn-outline-success" onclick="exportReports('excel')">
+                            <i class="fas fa-file-excel"></i> {% trans "Export Excel" %}
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Stats -->
+            <div class="card quick-stats mb-4">
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3">
+                            <div class="h3 mb-1">{{ total_budget|default:0|currency_format:0 }}</div>
+                            <div class="small opacity-75">{% trans "Total Budget" %}</div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="h3 mb-1">{{ total_expenses|default:0|currency_format:0 }}</div>
+                            <div class="small opacity-75">{% trans "Total Expenses" %}</div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="h3 mb-1">{{ budget_utilization|default:0|floatformat:1 }}%</div>
+                            <div class="small opacity-75">{% trans "Budget Utilization" %}</div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="h3 mb-1">{{ remaining_budget|default:0|currency_format:0 }}</div>
+                            <div class="small opacity-75">{% trans "Remaining Budget" %}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Financial Charts Section -->
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0"><i class="fas fa-chart-bar me-2"></i>{% trans "Financial Analytics" %}</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-3"><i class="fas fa-chart-pie me-2"></i>{% trans "Budget Distribution" %}</h6>
+                            <canvas id="budgetDistributionChart" width="400" height="300"></canvas>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-3"><i class="fas fa-chart-line me-2"></i>{% trans "Expense Trends" %}</h6>
+                            <canvas id="expenseTrendsChart" width="400" height="300"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Report Filters -->
+            <div class="card mb-4">
+                <!-- Filter Form -->
+                <div class="card-body border-bottom">
+                    <form method="get" id="report-filter-form">
+                        <!-- Main Filters Row -->
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-3">
+                                <label class="form-label text-muted small mb-1">{% trans "Search" %}</label>
+                                <input type="text" name="search" class="form-control form-control-sm" placeholder="{% trans 'Search reports...' %}" value="{{ request.GET.search }}">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label text-muted small mb-1">{% trans "Report Type" %}</label>
+                                <select name="report_type" class="form-select form-select-sm">
+                                    <option value="">{% trans "All Types" %}</option>
+                                    <option value="budget_summary" {% if request.GET.report_type == 'budget_summary' %}selected{% endif %}>{% trans "Budget Summary" %}</option>
+                                    <option value="expense_analysis" {% if request.GET.report_type == 'expense_analysis' %}selected{% endif %}>{% trans "Expense Analysis" %}</option>
+                                    <option value="variance_report" {% if request.GET.report_type == 'variance_report' %}selected{% endif %}>{% trans "Variance Report" %}</option>
+                                    <option value="trend_analysis" {% if request.GET.report_type == 'trend_analysis' %}selected{% endif %}>{% trans "Trend Analysis" %}</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label text-muted small mb-1">{% trans "From Date" %}</label>
+                                <input type="date" name="date_from" class="form-control form-control-sm" value="{{ request.GET.date_from }}">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label text-muted small mb-1">{% trans "To Date" %}</label>
+                                <input type="date" name="date_to" class="form-control form-control-sm" value="{{ request.GET.date_to }}">
+                            </div>
+                        </div>
+                        
+                        <!-- Second Row for Sort -->
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label text-muted small mb-1">{% trans "Sort by" %}</label>
+                                <select name="sort" class="form-select form-select-sm">
+                                    <option value="-created_at" {% if request.GET.sort == '-created_at' %}selected{% endif %}>{% trans "Newest First" %}</option>
+                                    <option value="created_at" {% if request.GET.sort == 'created_at' %}selected{% endif %}>{% trans "Oldest First" %}</option>
+                                    <option value="name" {% if request.GET.sort == 'name' %}selected{% endif %}>{% trans "Name (A-Z)" %}</option>
+                                    <option value="-name" {% if request.GET.sort == '-name' %}selected{% endif %}>{% trans "Name (Z-A)" %}</option>
+                                    <option value="report_type" {% if request.GET.sort == 'report_type' %}selected{% endif %}>{% trans "Type (A-Z)" %}</option>
+                                    <option value="-report_type" {% if request.GET.sort == '-report_type' %}selected{% endif %}>{% trans "Type (Z-A)" %}</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <!-- Action Buttons Row -->
+                        <div class="row g-3">
+                            <div class="col-12 text-end">
+                                <button type="submit" class="btn btn-primary btn-sm me-2">
+                                    <i class="fas fa-filter"></i> {% trans "Apply Filters" %}
+                                </button>
+                                <a href="{% url 'budget:report_list' %}" class="btn btn-outline-secondary btn-sm">
+                                    <i class="fas fa-times"></i> {% trans "Clear All" %}
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Available Reports -->
+            <div class="row">
+                <!-- Budget Summary Report -->
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="card report-card h-100" onclick="generateReport('budget_summary')">
+                        <div class="card-body text-center">
+                            <div class="report-icon bg-primary mx-auto mb-3">
+                                <i class="fas fa-chart-pie"></i>
+                            </div>
+                            <h5 class="card-title">{% trans "Budget Summary" %}</h5>
+                            <p class="card-text text-muted">
+                                {% trans "Overview of budget allocation, utilization, and remaining amounts across all plans and categories." %}
+                            </p>
+                            <div class="mt-3">
+                                <span class="badge bg-primary">{% trans "Financial Overview" %}</span>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-transparent">
+                            <small class="text-muted">
+                                <i class="fas fa-clock"></i> {% trans "Last updated:" %} {{ last_updated|date:"M d, Y H:i" }}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Expense Analysis Report -->
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="card report-card h-100" onclick="generateReport('expense_analysis')">
+                        <div class="card-body text-center">
+                            <div class="report-icon bg-success mx-auto mb-3">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                            <h5 class="card-title">{% trans "Expense Analysis" %}</h5>
+                            <p class="card-text text-muted">
+                                {% trans "Detailed breakdown of expenses by category, type, and time period with trend analysis." %}
+                            </p>
+                            <div class="mt-3">
+                                <span class="badge bg-success">{% trans "Expense Tracking" %}</span>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-transparent">
+                            <small class="text-muted">
+                                <i class="fas fa-chart-bar"></i> {% trans "Includes charts and graphs" %}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Budget vs Actual Report -->
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="card report-card h-100" onclick="generateReport('budget_vs_actual')">
+                        <div class="card-body text-center">
+                            <div class="report-icon bg-warning mx-auto mb-3">
+                                <i class="fas fa-balance-scale"></i>
+                            </div>
+                            <h5 class="card-title">{% trans "Budget vs Actual" %}</h5>
+                            <p class="card-text text-muted">
+                                {% trans "Comparison between planned budget and actual expenses with variance analysis." %}
+                            </p>
+                            <div class="mt-3">
+                                <span class="badge bg-warning">{% trans "Variance Analysis" %}</span>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-transparent">
+                            <small class="text-muted">
+                                <i class="fas fa-percentage"></i> {% trans "Shows percentage variances" %}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Category Performance Report -->
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="card report-card h-100" onclick="generateReport('category_performance')">
+                        <div class="card-body text-center">
+                            <div class="report-icon bg-info mx-auto mb-3">
+                                <i class="fas fa-tags"></i>
+                            </div>
+                            <h5 class="card-title">{% trans "Category Performance" %}</h5>
+                            <p class="card-text text-muted">
+                                {% trans "Performance analysis of budget categories with utilization rates and trends." %}
+                            </p>
+                            <div class="mt-3">
+                                <span class="badge bg-info">{% trans "Category Analysis" %}</span>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-transparent">
+                            <small class="text-muted">
+                                <i class="fas fa-trophy"></i> {% trans "Top performing categories" %}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Monthly Trends Report -->
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="card report-card h-100" onclick="generateReport('monthly_trends')">
+                        <div class="card-body text-center">
+                            <div class="report-icon bg-purple mx-auto mb-3" style="background-color: #6f42c1;">
+                                <i class="fas fa-calendar-alt"></i>
+                            </div>
+                            <h5 class="card-title">{% trans "Monthly Trends" %}</h5>
+                            <p class="card-text text-muted">
+                                {% trans "Month-over-month analysis of budget and expense trends with forecasting." %}
+                            </p>
+                            <div class="mt-3">
+                                <span class="badge" style="background-color: #6f42c1;">{% trans "Trend Analysis" %}</span>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-transparent">
+                            <small class="text-muted">
+                                <i class="fas fa-arrow-trend-up"></i> {% trans "Includes forecasting" %}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Custom Report Builder -->
+                <div class="col-lg-4 col-md-6 mb-4">
+                    <div class="card report-card h-100" onclick="openCustomReportBuilder()">
+                        <div class="card-body text-center">
+                            <div class="report-icon bg-dark mx-auto mb-3">
+                                <i class="fas fa-cogs"></i>
+                            </div>
+                            <h5 class="card-title">{% trans "Custom Report" %}</h5>
+                            <p class="card-text text-muted">
+                                {% trans "Build your own custom report with specific metrics, filters, and visualizations." %}
+                            </p>
+                            <div class="mt-3">
+                                <span class="badge bg-dark">{% trans "Custom Builder" %}</span>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-transparent">
+                            <small class="text-muted">
+                                <i class="fas fa-magic"></i> {% trans "Flexible report creation" %}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Reports -->
+            {% if recent_reports %}
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-history"></i> {% trans "Recent Reports" %}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>{% trans "Report Name" %}</th>
+                                    <th>{% trans "Type" %}</th>
+                                    <th>{% trans "Generated" %}</th>
+                                    <th>{% trans "Parameters" %}</th>
+                                    <th class="text-center">{% trans "Actions" %}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for report in recent_reports %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ report.name }}</strong>
+                                        {% if report.description %}
+                                        <br><small class="text-muted">{{ report.description|truncatechars:50 }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ report.get_report_type_display }}</span>
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">{{ report.created_at|date:"M d, Y H:i" }}</small>
+                                        <br><small class="text-muted">by {{ report.created_by.employee_first_name }} {{ report.created_by.employee_last_name|default:report.created_by.badge_id }}</small>
+                                    </td>
+                                    <td>
+                                        {% if report.date_from %}
+                                        <small class="text-muted">
+                                            {{ report.date_from|date:"M d" }} - {{ report.date_to|date:"M d, Y" }}
+                                        </small>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-sm btn-outline-primary" 
+                                                    onclick="viewReport('{{ report.id }}')" title="{% trans 'View Report' %}">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-success" 
+                                                    onclick="downloadReport('{{ report.id }}')" title="{% trans 'Download' %}">
+                                                <i class="fas fa-download"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                    onclick="deleteReport('{{ report.id }}')" title="{% trans 'Delete' %}">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Report Generation Modal -->
+<div class="modal fade" id="reportModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">{% trans "Generate Report" %}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="reportContent">
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">{% trans "Loading..." %}</span>
+                        </div>
+                        <p class="mt-2">{% trans "Generating report..." %}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans "Close" %}</button>
+                <button type="button" class="btn btn-primary" id="downloadReportBtn" style="display: none;">
+                    <i class="fas fa-download"></i> {% trans "Download" %}
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Custom Report Builder Modal -->
+<div class="modal fade" id="customReportModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">{% trans "Custom Report Builder" %}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="customReportForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>{% trans "Report Configuration" %}</h6>
+                            <div class="mb-3">
+                                <label class="form-label">{% trans "Report Name" %}</label>
+                                <input type="text" class="form-control" name="report_name" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">{% trans "Description" %}</label>
+                                <textarea class="form-control" name="description" rows="3"></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">{% trans "Date Range" %}</label>
+                                <div class="row">
+                                    <div class="col-6">
+                                        <input type="date" class="form-control" name="custom_date_from">
+                                    </div>
+                                    <div class="col-6">
+                                        <input type="date" class="form-control" name="custom_date_to">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>{% trans "Metrics to Include" %}</h6>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="metrics" value="budget_summary" checked>
+                                <label class="form-check-label">{% trans "Budget Summary" %}</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="metrics" value="expense_breakdown">
+                                <label class="form-check-label">{% trans "Expense Breakdown" %}</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="metrics" value="category_analysis">
+                                <label class="form-check-label">{% trans "Category Analysis" %}</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="metrics" value="trend_analysis">
+                                <label class="form-check-label">{% trans "Trend Analysis" %}</label>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
+                <button type="button" class="btn btn-primary" onclick="generateCustomReport()">
+                    <i class="fas fa-magic"></i> {% trans "Generate Report" %}
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Chart variables
+let budgetDistributionChart = null;
+let expenseTrendsChart = null;
+
+$(document).ready(function() {
+    // Initialize charts
+    initializeReportCharts();
+    
+    // Load chart data
+    loadReportChartData();
+    
+    // Auto-submit filters on change
+    $('#budget_plan').on('change', function() {
+        $('#reportFilters').submit();
+    });
+
+    // Date range validation
+    $('#date_from, #date_to').on('change', function() {
+        const dateFrom = $('#date_from').val();
+        const dateTo = $('#date_to').val();
+        
+        if (dateFrom && dateTo && dateFrom > dateTo) {
+            alert('{% trans "From date cannot be later than to date" %}');
+            $(this).val('');
+        }
+    });
+});
+
+// Initialize report charts
+function initializeReportCharts() {
+    initializeBudgetDistributionChart();
+    initializeExpenseTrendsChart();
+}
+
+// Budget Distribution Pie Chart
+function initializeBudgetDistributionChart() {
+    const ctx = document.getElementById('budgetDistributionChart').getContext('2d');
+    
+    budgetDistributionChart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: [],
+            datasets: [{
+                data: [],
+                backgroundColor: [
+                    '#007bff', '#28a745', '#ffc107', '#dc3545', 
+                    '#6f42c1', '#fd7e14', '#20c997', '#6c757d'
+                ],
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = ((context.parsed / total) * 100).toFixed(1);
+                            return context.label + ': IDR' + context.parsed.toLocaleString() + ' (' + percentage + '%)';
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Expense Trends Line Chart
+function initializeExpenseTrendsChart() {
+    const ctx = document.getElementById('expenseTrendsChart').getContext('2d');
+    
+    expenseTrendsChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'Monthly Expenses',
+                data: [],
+                borderColor: '#dc3545',
+                backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4
+            }, {
+                label: 'Budget Allocation',
+                data: [],
+                borderColor: '#28a745',
+                backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                borderWidth: 3,
+                fill: false,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.dataset.label + ': IDR' + context.parsed.y.toLocaleString();
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return 'IDR' + value.toLocaleString();
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Load chart data from API
+function loadReportChartData() {
+    // Get budget values from template
+    const totalBudget = parseFloat('{{ total_budget|default:0 }}') || 1000000;
+    const totalExpenses = parseFloat('{{ total_expenses|default:0 }}') || 500000;
+    
+    // Load budget distribution data
+    if (budgetDistributionChart) {
+        // Sample data - replace with actual API data
+        const categories = ['Operations', 'Marketing', 'IT', 'HR', 'Finance'];
+        const amounts = [
+            totalBudget * 0.4, 
+            totalBudget * 0.25, 
+            totalBudget * 0.2, 
+            totalBudget * 0.1, 
+            totalBudget * 0.05
+        ];
+        
+        budgetDistributionChart.data.labels = categories;
+        budgetDistributionChart.data.datasets[0].data = amounts;
+        budgetDistributionChart.update();
+    }
+    
+    if (expenseTrendsChart) {
+        // Sample monthly data - replace with actual API data
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+        const expenses = [
+            totalExpenses * 0.15, 
+            totalExpenses * 0.18, 
+            totalExpenses * 0.16, 
+            totalExpenses * 0.20, 
+            totalExpenses * 0.17, 
+            totalExpenses * 0.14
+        ];
+        const budgets = [
+            totalBudget * 0.17, 
+            totalBudget * 0.17, 
+            totalBudget * 0.17, 
+            totalBudget * 0.17, 
+            totalBudget * 0.16, 
+            totalBudget * 0.16
+        ];
+        
+        expenseTrendsChart.data.labels = months;
+        expenseTrendsChart.data.datasets[0].data = expenses;
+        expenseTrendsChart.data.datasets[1].data = budgets;
+        expenseTrendsChart.update();
+    }
+}
+
+// Report generation functions
+function generateReport(reportType) {
+    const filters = {
+        date_from: $('#date_from').val(),
+        date_to: $('#date_to').val(),
+        budget_plan: $('#budget_plan').val()
+    };
+    
+    $('#reportModal').modal('show');
+    
+    // Simulate report generation
+    setTimeout(function() {
+        $('#reportContent').html(`
+            <div class="alert alert-success">
+                <i class="fas fa-check-circle"></i>
+                {% trans "Report generated successfully!" %}
+            </div>
+            <p>{% trans "Your" %} ${reportType.replace('_', ' ')} {% trans "report is ready for download." %}</p>
+        `);
+        $('#downloadReportBtn').show();
+    }, 2000);
+}
+
+function openCustomReportBuilder() {
+    $('#customReportModal').modal('show');
+}
+
+function generateCustomReport() {
+    const formData = new FormData($('#customReportForm')[0]);
+    
+    // Validate form
+    if (!formData.get('report_name')) {
+        alert('{% trans "Please enter a report name" %}');
+        return;
+    }
+    
+    $('#customReportModal').modal('hide');
+    $('#reportModal').modal('show');
+    
+    // Simulate custom report generation
+    setTimeout(function() {
+        $('#reportContent').html(`
+            <div class="alert alert-success">
+                <i class="fas fa-check-circle"></i>
+                {% trans "Custom report generated successfully!" %}
+            </div>
+            <p>{% trans "Your custom report" %} "${formData.get('report_name')}" {% trans "is ready for download." %}</p>
+        `);
+        $('#downloadReportBtn').show();
+    }, 3000);
+}
+
+function exportReports(format) {
+    const filters = {
+        date_from: $('#date_from').val(),
+        date_to: $('#date_to').val(),
+        budget_plan: $('#budget_plan').val(),
+        format: format
+    };
+    
+    // Create download link
+    const params = new URLSearchParams(filters);
+    const url = `{% url 'budget:export_reports' %}?${params.toString()}`;
+    
+    // Trigger download
+    window.open(url, '_blank');
+}
+
+function viewReport(reportId) {
+    window.open(`{% url 'budget:view_report' 0 %}`.replace('0', reportId), '_blank');
+}
+
+function downloadReport(reportId) {
+    window.open(`{% url 'budget:download_report' 0 %}`.replace('0', reportId), '_blank');
+}
+
+function deleteReport(reportId) {
+    if (confirm('{% trans "Are you sure you want to delete this report?" %}')) {
+        // Make AJAX request to delete report
+        fetch(`{% url 'budget:delete_report' 0 %}`.replace('0', reportId), {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()
+            }
+        }).then(response => {
+            if (response.ok) {
+                location.reload();
+            } else {
+                alert('{% trans "Error deleting report" %}');
+            }
+        });
+    }
+}
+</script>
+{% endblock %}

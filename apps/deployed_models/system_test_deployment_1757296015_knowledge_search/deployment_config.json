@@ -1,0 +1,57 @@
+{
+  "deployment_name": "system_test_deployment_1757296015_knowledge_search",
+  "deployment_path": "/Users/haryanto.bonti/apps/deployed_models/system_test_deployment_1757296015_knowledge_search",
+  "created_at": "2025-09-08T01:46:55.307032+00:00",
+  "model_info": {
+    "id": "4d84b2ed-fab8-41db-801b-518589135c02",
+    "name": "system_test_model_1757296015_knowledge_search",
+    "service_type": "knowledge_search",
+    "version": "1.0.0",
+    "model_type": "classification",
+    "framework": "scikit-learn"
+  },
+  "training_info": {
+    "session_id": "90865e22-fa7d-469a-92da-22f4e3cd7c14",
+    "accuracy": 0.8664814944371039,
+    "training_time": 3.337860107421875e-07,
+    "data_size": 100,
+    "completed_at": null
+  },
+  "serving_config": {
+    "endpoint": "/api/ai/knowledge/search/",
+    "max_concurrent_requests": 20,
+    "timeout_seconds": 15,
+    "cache_predictions": true,
+    "cache_ttl": 1800
+  },
+  "model_files": {
+    "files_copied": [
+      {
+        "type": "model",
+        "path": "/Users/haryanto.bonti/apps/deployed_models/system_test_deployment_1757296015_knowledge_search/model.pkl",
+        "size_mb": 0.0
+      }
+    ],
+    "model_size_mb": 5.7220458984375e-05
+  },
+  "environment": {
+    "python_version": "3.9+",
+    "django_version": "4.2+",
+    "required_packages": [
+      "django>=4.2.0",
+      "djangorestframework>=3.14.0",
+      "redis>=4.5.0",
+      "celery>=5.3.0",
+      "numpy>=1.24.0",
+      "pandas>=2.0.0",
+      "sentence-transformers>=2.2.0",
+      "chromadb>=0.4.0",
+      "faiss-cpu>=1.7.0"
+    ]
+  },
+  "monitoring": {
+    "health_check_endpoint": "/health/system_test_deployment_1757296015_knowledge_search/",
+    "metrics_endpoint": "/metrics/system_test_deployment_1757296015_knowledge_search/",
+    "log_level": "INFO"
+  }
+}

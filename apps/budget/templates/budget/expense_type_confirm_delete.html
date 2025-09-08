@@ -1,0 +1,122 @@
+{% extends "budget/base_budget.html" %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}{% trans "Delete Expense Type" %} - {{ object.name }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <!-- Page Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="h3 mb-0">{% trans "Delete Expense Type" %}</h1>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-0">
+                            <li class="breadcrumb-item"><a href="{% url 'base:home' %}">{% trans "Home" %}</a></li>
+                            <li class="breadcrumb-item"><a href="{% url 'budget:dashboard' %}">{% trans "Budget" %}</a></li>
+                            <li class="breadcrumb-item"><a href="{% url 'budget:expense_type_list' %}">{% trans "Expense Types" %}</a></li>
+                            <li class="breadcrumb-item active" aria-current="page">{% trans "Delete" %}</li>
+                        </ol>
+                    </nav>
+                </div>
+            </div>
+
+            <!-- Delete Confirmation Card -->
+            <div class="row justify-content-center">
+                <div class="col-md-8 col-lg-6">
+                    <div class="card border-danger">
+                        <div class="card-header bg-danger text-white">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                {% trans "Confirm Deletion" %}
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="alert alert-warning" role="alert">
+                                <i class="fas fa-warning me-2"></i>
+                                <strong>{% trans "Warning!" %}</strong> {% trans "This action cannot be undone." %}
+                            </div>
+
+                            <p class="mb-4">
+                                {% blocktrans with name=object.name %}Are you sure you want to delete the expense type "{{ name }}"?{% endblocktrans %}
+                            </p>
+
+                            <!-- Expense Type Details -->
+                            <div class="card mb-4">
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-sm-4">
+                                            <strong>{% trans "Name" %}:</strong>
+                                        </div>
+                                        <div class="col-sm-8">
+                                            {{ object.name }}
+                                        </div>
+                                    </div>
+                                    {% if object.code %}
+                                    <div class="row mt-2">
+                                        <div class="col-sm-4">
+                                            <strong>{% trans "Code" %}:</strong>
+                                        </div>
+                                        <div class="col-sm-8">
+                                            <code>{{ object.code }}</code>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                    {% if object.description %}
+                                    <div class="row mt-2">
+                                        <div class="col-sm-4">
+                                            <strong>{% trans "Description" %}:</strong>
+                                        </div>
+                                        <div class="col-sm-8">
+                                            {{ object.description }}
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                    <div class="row mt-2">
+                                        <div class="col-sm-4">
+                                            <strong>{% trans "Status" %}:</strong>
+                                        </div>
+                                        <div class="col-sm-8">
+                                            {% if object.is_active %}
+                                                <span class="badge bg-success">{% trans "Active" %}</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">{% trans "Inactive" %}</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <form method="post" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-danger me-2">
+                                    <i class="fas fa-trash"></i> {% trans "Yes, Delete" %}
+                                </button>
+                                <a href="{% url 'budget:expense_type_list' %}" class="btn btn-secondary">
+                                    <i class="fas fa-times"></i> {% trans "Cancel" %}
+                                </a>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Add confirmation dialog
+    $('form').on('submit', function(e) {
+        if (!confirm('{% trans "Are you absolutely sure you want to delete this expense type?" %}')) {
+            e.preventDefault();
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,243 @@
+version: '3.8'
+
+services:
+  # Main web application with AI model deployment
+  web:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.model-deployment
+    container_name: horilla-model-deployment
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=False
+      - DJANGO_SETTINGS_MODULE=horilla.settings
+      - DATABASE_URL=postgresql://horilla:horilla123@db:5432/horilla_db
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-here}
+      - START_CELERY_WORKER=false
+      - START_CELERY_BEAT=false
+      - AI_MODEL_CACHE_TTL=3600
+      - AI_MODEL_MAX_WORKERS=4
+      - AI_MODEL_TIMEOUT=120
+      - DEPLOYMENT_DIR=/app/deployed_models
+    volumes:
+      - deployed_models:/app/deployed_models
+      - static_files:/app/static
+      - media_files:/app/media
+      - logs:/app/logs
+    depends_on:
+      - db
+      - redis
+    networks:
+      - horilla-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/ai/deployment/status/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    container_name: horilla-db
+    environment:
+      - POSTGRES_DB=horilla_db
+      - POSTGRES_USER=horilla
+      - POSTGRES_PASSWORD=horilla123
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/init-scripts:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    networks:
+      - horilla-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U horilla -d horilla_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for caching and message broker
+  redis:
+    image: redis:7-alpine
+    container_name: horilla-redis
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - horilla-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  # Celery Worker for background tasks
+  celery-worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.model-deployment
+    container_name: horilla-celery-worker
+    command: celery -A horilla worker --loglevel=info --concurrency=4
+    environment:
+      - DEBUG=False
+      - DJANGO_SETTINGS_MODULE=horilla.settings
+      - DATABASE_URL=postgresql://horilla:horilla123@db:5432/horilla_db
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - AI_MODEL_CACHE_TTL=3600
+      - DEPLOYMENT_DIR=/app/deployed_models
+    volumes:
+      - deployed_models:/app/deployed_models
+      - logs:/app/logs
+    depends_on:
+      - db
+      - redis
+    networks:
+      - horilla-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "celery", "-A", "horilla", "inspect", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Celery Beat for scheduled tasks
+  celery-beat:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.model-deployment
+    container_name: horilla-celery-beat
+    command: celery -A horilla beat --loglevel=info
+    environment:
+      - DEBUG=False
+      - DJANGO_SETTINGS_MODULE=horilla.settings
+      - DATABASE_URL=postgresql://horilla:horilla123@db:5432/horilla_db
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+    volumes:
+      - logs:/app/logs
+    depends_on:
+      - db
+      - redis
+    networks:
+      - horilla-network
+    restart: unless-stopped
+
+  # Nginx reverse proxy
+  nginx:
+    image: nginx:alpine
+    container_name: horilla-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/sites-available:/etc/nginx/sites-available:ro
+      - static_files:/app/static:ro
+      - media_files:/app/media:ro
+      - ./docker/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - web
+    networks:
+      - horilla-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Flower for Celery monitoring
+  flower:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.model-deployment
+    container_name: horilla-flower
+    command: celery -A horilla flower --port=5555
+    ports:
+      - "5555:5555"
+    environment:
+      - DEBUG=False
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - FLOWER_BASIC_AUTH=${FLOWER_USER:-admin}:${FLOWER_PASSWORD:-admin123}
+    depends_on:
+      - redis
+      - celery-worker
+    networks:
+      - horilla-network
+    restart: unless-stopped
+
+  # Model deployment monitoring service
+  deployment-monitor:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.model-deployment
+    container_name: horilla-deployment-monitor
+    command: python manage.py deploy_model health --format json
+    environment:
+      - DEBUG=False
+      - DJANGO_SETTINGS_MODULE=horilla.settings
+      - DATABASE_URL=postgresql://horilla:horilla123@db:5432/horilla_db
+      - DEPLOYMENT_DIR=/app/deployed_models
+    volumes:
+      - deployed_models:/app/deployed_models
+      - logs:/app/logs
+    depends_on:
+      - web
+    networks:
+      - horilla-network
+    restart: "no"
+    profiles:
+      - monitoring
+
+  # Log aggregation service
+  log-aggregator:
+    image: fluent/fluent-bit:latest
+    container_name: horilla-log-aggregator
+    volumes:
+      - logs:/app/logs:ro
+      - ./docker/fluent-bit/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf:ro
+    depends_on:
+      - web
+    networks:
+      - horilla-network
+    restart: unless-stopped
+    profiles:
+      - logging
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  deployed_models:
+    driver: local
+  static_files:
+    driver: local
+  media_files:
+    driver: local
+  logs:
+    driver: local
+
+networks:
+  horilla-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

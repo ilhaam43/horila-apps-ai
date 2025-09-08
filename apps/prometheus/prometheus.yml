@@ -1,0 +1,138 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'horilla-production'
+    environment: 'production'
+
+rule_files:
+  - "alert_rules.yml"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+
+scrape_configs:
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+  # HAProxy metrics
+  - job_name: 'haproxy'
+    static_configs:
+      - targets: ['haproxy:8404']
+    scrape_interval: 30s
+    metrics_path: /stats
+    params:
+      stats: ['prometheus']
+
+  # Django application instances
+  - job_name: 'horilla-web'
+    static_configs:
+      - targets: 
+        - 'web1:8000'
+        - 'web2:8000'
+        - 'web3:8000'
+    scrape_interval: 30s
+    metrics_path: /monitoring/metrics/
+    scrape_timeout: 10s
+    honor_labels: true
+
+  # PostgreSQL metrics (using postgres_exporter)
+  - job_name: 'postgresql'
+    static_configs:
+      - targets: ['postgres_exporter:9187']
+    scrape_interval: 30s
+
+  # Redis metrics (using redis_exporter)
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis_exporter:9121']
+    scrape_interval: 30s
+
+  # Node exporter for system metrics
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node_exporter:9100']
+    scrape_interval: 30s
+
+  # Celery metrics (using celery_exporter)
+  - job_name: 'celery'
+    static_configs:
+      - targets: ['celery_exporter:9540']
+    scrape_interval: 30s
+
+  # Elasticsearch metrics
+  - job_name: 'elasticsearch'
+    static_configs:
+      - targets: ['elasticsearch_exporter:9114']
+    scrape_interval: 30s
+
+  # Ollama metrics (if available)
+  - job_name: 'ollama'
+    static_configs:
+      - targets: ['ollama:11434']
+    scrape_interval: 60s
+    metrics_path: /metrics
+    scrape_timeout: 30s
+
+  # N8N metrics
+  - job_name: 'n8n'
+    static_configs:
+      - targets: ['n8n:5678']
+    scrape_interval: 60s
+    metrics_path: /metrics
+    scrape_timeout: 30s
+
+  # ChromaDB metrics (if available)
+  - job_name: 'chromadb'
+    static_configs:
+      - targets: ['chromadb:8000']
+    scrape_interval: 60s
+    metrics_path: /api/v1/metrics
+    scrape_timeout: 30s
+
+  # Grafana metrics
+  - job_name: 'grafana'
+    static_configs:
+      - targets: ['grafana:3000']
+    scrape_interval: 60s
+    metrics_path: /metrics
+
+  # Flower (Celery monitoring)
+  - job_name: 'flower'
+    static_configs:
+      - targets: ['flower:5555']
+    scrape_interval: 60s
+    metrics_path: /metrics
+
+  # Custom health checks
+  - job_name: 'health-checks'
+    static_configs:
+      - targets:
+        - 'web1:8000'
+        - 'web2:8000'
+        - 'web3:8000'
+    scrape_interval: 15s
+    metrics_path: /monitoring/health/detailed/
+    scrape_timeout: 10s
+    honor_labels: true
+
+# Remote write configuration (for long-term storage)
+# remote_write:
+#   - url: "https://prometheus-remote-write-endpoint"
+#     basic_auth:
+#       username: "username"
+#       password: "password"
+
+# Remote read configuration
+# remote_read:
+#   - url: "https://prometheus-remote-read-endpoint"
+#     basic_auth:
+#       username: "username"
+#       password: "password"

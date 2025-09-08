@@ -1,0 +1,355 @@
+{% extends 'budget/base_budget.html' %}
+{% load static %}
+
+{% block title %}Generate Financial Report{% endblock %}
+
+{% block extra_css %}
+<style>
+.generate-header {
+    background: linear-gradient(135deg, #28a745, #20c997);
+    color: white;
+    padding: 2rem;
+    border-radius: 0.5rem;
+    margin-bottom: 2rem;
+}
+
+.form-card {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border: none;
+    border-radius: 0.5rem;
+}
+
+.form-card .card-header {
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    border-bottom: 2px solid #dee2e6;
+    font-weight: 600;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-control {
+    border-radius: 0.375rem;
+    border: 2px solid #e9ecef;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.form-control:focus {
+    border-color: #28a745;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+}
+
+.btn-generate {
+    background: linear-gradient(135deg, #28a745, #20c997);
+    border: none;
+    padding: 0.75rem 2rem;
+    font-weight: 600;
+}
+
+.btn-generate:hover {
+    background: linear-gradient(135deg, #218838, #1e7e34);
+    transform: translateY(-1px);
+}
+
+.btn-secondary {
+    background: linear-gradient(135deg, #6c757d, #5a6268);
+    border: none;
+}
+
+.btn-secondary:hover {
+    background: linear-gradient(135deg, #5a6268, #545b62);
+    transform: translateY(-1px);
+}
+
+.info-card {
+    background: linear-gradient(135deg, #e3f2fd, #f3e5f5);
+    border: 1px solid #bbdefb;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.feature-list {
+    list-style: none;
+    padding: 0;
+}
+
+.feature-list li {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.feature-list li:last-child {
+    border-bottom: none;
+}
+
+.feature-list i {
+    color: #28a745;
+    width: 20px;
+}
+
+.preview-section {
+    background-color: #f8f9fa;
+    border: 2px dashed #dee2e6;
+    border-radius: 0.5rem;
+    padding: 2rem;
+    text-align: center;
+    margin-top: 2rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'budget:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'budget:report_list' %}">Reports</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Generate Report</li>
+        </ol>
+    </nav>
+
+    <!-- Header -->
+    <div class="generate-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h2 class="mb-2">
+                    <i class="fas fa-chart-line me-3"></i>Generate Financial Report
+                </h2>
+                <p class="mb-0 opacity-75">
+                    Create comprehensive financial reports for your budget analysis
+                </p>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <i class="fas fa-file-chart-line fa-4x opacity-50"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Form Section -->
+        <div class="col-md-8">
+            <div class="card form-card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-cog me-2"></i>Report Configuration
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" id="generateReportForm">
+                        {% csrf_token %}
+                        
+                        <div class="form-group">
+                            <label for="reportTitle" class="form-label">
+                                <i class="fas fa-heading me-2"></i>Report Title
+                            </label>
+                            <input type="text" class="form-control" id="reportTitle" name="title" 
+                                   value="Financial Report - {{ today|date:'Y-m-d' }}" required>
+                            <small class="form-text text-muted">Enter a descriptive title for your report</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="reportType" class="form-label">
+                                <i class="fas fa-chart-bar me-2"></i>Report Type
+                            </label>
+                            <select class="form-control" id="reportType" name="report_type" required>
+                                <option value="monthly">Monthly Report</option>
+                                <option value="quarterly">Quarterly Report</option>
+                                <option value="yearly">Yearly Report</option>
+                                <option value="custom">Custom Period</option>
+                            </select>
+                            <small class="form-text text-muted">Select the type of report to generate</small>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="startDate" class="form-label">
+                                        <i class="fas fa-calendar-alt me-2"></i>Start Date
+                                    </label>
+                                    <input type="date" class="form-control" id="startDate" name="start_date">
+                                    <small class="form-text text-muted">Leave blank for automatic period</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="endDate" class="form-label">
+                                        <i class="fas fa-calendar-alt me-2"></i>End Date
+                                    </label>
+                                    <input type="date" class="form-control" id="endDate" name="end_date">
+                                    <small class="form-text text-muted">Leave blank for automatic period</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">
+                                <i class="fas fa-filter me-2"></i>Include Sections
+                            </label>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="includeBudgets" name="include_budgets" checked>
+                                        <label class="form-check-label" for="includeBudgets">
+                                            Budget Plans Summary
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="includeExpenses" name="include_expenses" checked>
+                                        <label class="form-check-label" for="includeExpenses">
+                                            Expenses Analysis
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="includeCategories" name="include_categories" checked>
+                                        <label class="form-check-label" for="includeCategories">
+                                            Category Breakdown
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="includeCharts" name="include_charts" checked>
+                                        <label class="form-check-label" for="includeCharts">
+                                            Charts & Graphs
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="reportNotes" class="form-label">
+                                <i class="fas fa-sticky-note me-2"></i>Additional Notes
+                            </label>
+                            <textarea class="form-control" id="reportNotes" name="notes" rows="3" 
+                                      placeholder="Add any additional notes or comments for this report..."></textarea>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between align-items-center mt-4">
+                            <a href="{% url 'budget:report_list' %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Back to Reports
+                            </a>
+                            <button type="submit" class="btn btn-generate" id="generateBtn">
+                                <i class="fas fa-cogs me-2"></i>Generate Report
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Info Section -->
+        <div class="col-md-4">
+            <div class="info-card">
+                <h5 class="mb-3">
+                    <i class="fas fa-info-circle me-2"></i>Report Features
+                </h5>
+                <ul class="feature-list">
+                    <li><i class="fas fa-check me-2"></i>Comprehensive budget analysis</li>
+                    <li><i class="fas fa-check me-2"></i>Expense tracking and categorization</li>
+                    <li><i class="fas fa-check me-2"></i>Visual charts and graphs</li>
+                    <li><i class="fas fa-check me-2"></i>Period-based comparisons</li>
+                    <li><i class="fas fa-check me-2"></i>Export to multiple formats</li>
+                    <li><i class="fas fa-check me-2"></i>Automated calculations</li>
+                </ul>
+            </div>
+            
+            <div class="card form-card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-lightbulb me-2"></i>Tips
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <small class="text-muted">
+                        <ul class="mb-0">
+                            <li>Monthly reports are great for regular tracking</li>
+                            <li>Quarterly reports help with seasonal analysis</li>
+                            <li>Use custom periods for specific project analysis</li>
+                            <li>Include all sections for comprehensive insights</li>
+                        </ul>
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Preview Section -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="preview-section">
+                <i class="fas fa-eye fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">Report Preview</h5>
+                <p class="text-muted mb-0">A preview of your generated report will appear here once processing is complete.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Auto-set dates based on report type
+    $('#reportType').on('change', function() {
+        const reportType = $(this).val();
+        const today = new Date();
+        let startDate, endDate;
+        
+        switch(reportType) {
+            case 'monthly':
+                startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+                endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+                break;
+            case 'quarterly':
+                const quarter = Math.floor(today.getMonth() / 3);
+                startDate = new Date(today.getFullYear(), quarter * 3, 1);
+                endDate = new Date(today.getFullYear(), (quarter + 1) * 3, 0);
+                break;
+            case 'yearly':
+                startDate = new Date(today.getFullYear(), 0, 1);
+                endDate = new Date(today.getFullYear(), 11, 31);
+                break;
+            default:
+                startDate = null;
+                endDate = null;
+        }
+        
+        if (startDate && endDate) {
+            $('#startDate').val(startDate.toISOString().split('T')[0]);
+            $('#endDate').val(endDate.toISOString().split('T')[0]);
+        }
+    });
+    
+    // Trigger initial date setting
+    $('#reportType').trigger('change');
+    
+    // Form submission with loading state
+    $('#generateReportForm').on('submit', function(e) {
+        const $btn = $('#generateBtn');
+        $btn.prop('disabled', true)
+            .html('<i class="fas fa-spinner fa-spin me-2"></i>Generating...');
+        
+        // Re-enable button after 3 seconds (in case of error)
+        setTimeout(function() {
+            $btn.prop('disabled', false)
+                .html('<i class="fas fa-cogs me-2"></i>Generate Report');
+        }, 3000);
+    });
+    
+    // Validate date range
+    $('#startDate, #endDate').on('change', function() {
+        const startDate = new Date($('#startDate').val());
+        const endDate = new Date($('#endDate').val());
+        
+        if (startDate && endDate && startDate > endDate) {
+            alert('Start date cannot be later than end date.');
+            $(this).val('');
+        }
+    });
+});
+</script>
+{% endblock %}

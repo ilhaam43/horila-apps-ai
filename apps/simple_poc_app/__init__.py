@@ -1,0 +1,1 @@
+# Simple POC App for AI Services

@@ -1,0 +1,403 @@
+{% extends "budget/base_budget.html" %}
+{% load static %}
+{% load i18n %}
+{% load budget_filters %}
+{% load widget_tweaks %}
+
+{% block title %}
+{% if form.instance.pk %}
+    {% trans "Edit Category" %} - {{ form.instance.name }}
+{% else %}
+    {% trans "Add New Category" %}
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2>
+                        {% if form.instance.pk %}
+                            {% trans "Edit Category" %}
+                        {% else %}
+                            {% trans "Add New Category" %}
+                        {% endif %}
+                    </h2>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a href="{% url 'budget:dashboard' %}">{% trans "Budget" %}</a></li>
+                            <li class="breadcrumb-item"><a href="{% url 'budget:category_list' %}">{% trans "Categories" %}</a></li>
+                            <li class="breadcrumb-item active">
+                                {% if form.instance.pk %}
+                                    {% trans "Edit" %}
+                                {% else %}
+                                    {% trans "Add New" %}
+                                {% endif %}
+                            </li>
+                        </ol>
+                    </nav>
+                </div>
+                <div>
+                    <a href="{% url 'budget:category_list' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> {% trans "Back to List" %}
+                    </a>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Form -->
+                <div class="col-lg-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                {% if form.instance.pk %}
+                                    {% trans "Edit Category Information" %}
+                                {% else %}
+                                    {% trans "Category Information" %}
+                                {% endif %}
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <form method="post" id="categoryForm">
+                                {% csrf_token %}
+                                
+                                <!-- Error Messages -->
+                                {% if form.non_field_errors %}
+                                <div class="alert alert-danger" role="alert">
+                                    {{ form.non_field_errors }}
+                                </div>
+                                {% endif %}
+
+                                <div class="row">
+                                    <!-- Name -->
+                                    <div class="col-md-12 mb-3">
+                                        <label for="{{ form.name.id_for_label }}" class="form-label">
+                                            {{ form.name.label }} <span class="text-danger">*</span>
+                                        </label>
+                                        {{ form.name|add_class:"form-control" }}
+                                        {% if form.name.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.name.errors.0 }}
+                                        </div>
+                                        {% endif %}
+                                        <div class="form-text">{% trans "Enter a unique name for this budget category" %}</div>
+                                    </div>
+
+                                    <!-- Description -->
+                                    <div class="col-md-12 mb-3">
+                                        <label for="{{ form.description.id_for_label }}" class="form-label">
+                                            {{ form.description.label }}
+                                        </label>
+                                        {{ form.description|add_class:"form-control"|attr:"rows:4" }}
+                                        {% if form.description.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.description.errors.0 }}
+                                        </div>
+                                        {% endif %}
+                                        <div class="form-text">{% trans "Provide a detailed description of what this category covers (optional)" %}</div>
+                                    </div>
+
+                                    <!-- Color -->
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ form.color.id_for_label }}" class="form-label">
+                                            {{ form.color.label }}
+                                        </label>
+                                        <div class="input-group">
+                                            {{ form.color|add_class:"form-control form-control-color"|attr:"style:width: 60px;" }}
+                                            <input type="text" class="form-control" id="colorText" readonly>
+                                        </div>
+                                        {% if form.color.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.color.errors.0 }}
+                                        </div>
+                                        {% endif %}
+                                        <div class="form-text">{% trans "Choose a color to represent this category in charts and reports" %}</div>
+                                    </div>
+
+                                    <!-- Status -->
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ form.is_active.id_for_label }}" class="form-label">
+                                            {% trans "Status" %}
+                                        </label>
+                                        <div class="form-check form-switch">
+                                            {{ form.is_active|add_class:"form-check-input" }}
+                                            <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                                                {% trans "Active" %}
+                                            </label>
+                                        </div>
+                                        {% if form.is_active.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.is_active.errors.0 }}
+                                        </div>
+                                        {% endif %}
+                                        <div class="form-text">{% trans "Only active categories can be used in budget plans" %}</div>
+                                    </div>
+
+                                    <!-- Budget Limit (if applicable) -->
+                                    {% if form.budget_limit %}
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ form.budget_limit.id_for_label }}" class="form-label">
+                                            {{ form.budget_limit.label }}
+                                        </label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">$</span>
+                                            {{ form.budget_limit|add_class:"form-control" }}
+                                        </div>
+                                        {% if form.budget_limit.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.budget_limit.errors.0 }}
+                                        </div>
+                                        {% endif %}
+                                        <div class="form-text">{% trans "Optional: Set a default budget limit for this category" %}</div>
+                                    </div>
+                                    {% endif %}
+
+                                    <!-- Parent Category (if hierarchical) -->
+                                    {% if form.parent %}
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ form.parent.id_for_label }}" class="form-label">
+                                            {{ form.parent.label }}
+                                        </label>
+                                        {{ form.parent|add_class:"form-select" }}
+                                        {% if form.parent.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.parent.errors.0 }}
+                                        </div>
+                                        {% endif %}
+                                        <div class="form-text">{% trans "Optional: Select a parent category to create a hierarchy" %}</div>
+                                    </div>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Form Actions -->
+                                <div class="row">
+                                    <div class="col-12">
+                                        <hr>
+                                        <div class="d-flex justify-content-between">
+                                            <div>
+                                                {% if form.instance.pk %}
+                                                <button type="submit" class="btn btn-primary">
+                                                    <i class="fas fa-save"></i> {% trans "Update Category" %}
+                                                </button>
+                                                {% else %}
+                                                <button type="submit" class="btn btn-primary">
+                                                    <i class="fas fa-save"></i> {% trans "Create Category" %}
+                                                </button>
+                                                {% endif %}
+                                                <button type="submit" name="save_and_add" class="btn btn-success">
+                                                    <i class="fas fa-plus"></i> {% trans "Save & Add Another" %}
+                                                </button>
+                                            </div>
+                                            <div>
+                                                <a href="{% url 'budget:category_list' %}" class="btn btn-secondary">
+                                                    <i class="fas fa-times"></i> {% trans "Cancel" %}
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Usage Information (for edit mode) -->
+                    {% if form.instance.pk %}
+                    <div class="card mt-4">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">{% trans "Usage Information" %}</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4 text-center">
+                                    <div class="h4 text-primary mb-1">{{ form.instance.budget_plans_count|default:0 }}</div>
+                                    <div class="text-muted">{% trans "Budget Plans" %}</div>
+                                </div>
+                                <div class="col-md-4 text-center">
+                                    <div class="h4 text-success mb-1">{{ form.instance.total_allocated|default:0|currency_format }}</div>
+                                    <div class="text-muted">{% trans "Total Allocated" %}</div>
+                                </div>
+                                <div class="col-md-4 text-center">
+                                    <div class="h4 text-info mb-1">{{ form.instance.total_spent|default:0|currency_format }}</div>
+                                    <div class="text-muted">{% trans "Total Spent" %}</div>
+                                </div>
+                            </div>
+                            
+                            {% if form.instance.budget_plans_count > 0 %}
+                            <hr>
+                            <div class="alert alert-info" role="alert">
+                                <i class="fas fa-info-circle"></i>
+                                {% trans "This category is currently being used by" %} {{ form.instance.budget_plans_count }} {% trans "budget plan(s). Changes may affect existing budget calculations." %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Help Panel -->
+                <div class="col-lg-4">
+                    <!-- Preview -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">{% trans "Category Preview" %}</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="category-preview p-3 border rounded">
+                                <div class="d-flex align-items-center mb-2">
+                                    <div class="category-color-preview me-3" style="width: 20px; height: 20px; border-radius: 50%; background-color: #007bff;"></div>
+                                    <div>
+                                        <h6 class="mb-0 category-name-preview">{% trans "Category Name" %}</h6>
+                                        <small class="text-muted category-desc-preview">{% trans "Category description will appear here" %}</small>
+                                    </div>
+                                </div>
+                                <div class="category-status-preview">
+                                    <span class="badge bg-success">{% trans "Active" %}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tips -->
+                    <div class="card mt-3">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">{% trans "Tips" %}</h5>
+                        </div>
+                        <div class="card-body">
+                            <ul class="list-unstyled mb-0">
+                                <li class="mb-2">
+                                    <i class="fas fa-lightbulb text-warning me-2"></i>
+                                    {% trans "Use clear, descriptive names for easy identification" %}
+                                </li>
+                                <li class="mb-2">
+                                    <i class="fas fa-palette text-info me-2"></i>
+                                    {% trans "Choose distinct colors to differentiate categories in reports" %}
+                                </li>
+                                <li class="mb-2">
+                                    <i class="fas fa-toggle-on text-success me-2"></i>
+                                    {% trans "Inactive categories won't appear in budget plan creation" %}
+                                </li>
+                                <li class="mb-0">
+                                    <i class="fas fa-sitemap text-primary me-2"></i>
+                                    {% trans "Consider creating a logical hierarchy for better organization" %}
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="card mt-3">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">{% trans "Quick Actions" %}</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-grid gap-2">
+                                <a href="{% url 'budget:category_list' %}" class="btn btn-outline-secondary btn-sm">
+                                    <i class="fas fa-list"></i> {% trans "View All Categories" %}
+                                </a>
+                                <a href="{% url 'budget:plan_list' %}" class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-chart-pie"></i> {% trans "View Budget Plans" %}
+                                </a>
+                                {% if form.instance.pk %}
+                                <a href="{% url 'budget:category_create' %}" class="btn btn-outline-success btn-sm">
+                                    <i class="fas fa-plus"></i> {% trans "Add Another Category" %}
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Color Suggestions -->
+                    <div class="card mt-3">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">{% trans "Color Suggestions" %}</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-2">
+                                <div class="col-3">
+                                    <div class="color-suggestion" data-color="#007bff" style="background-color: #007bff; height: 30px; border-radius: 4px; cursor: pointer;" title="Blue"></div>
+                                </div>
+                                <div class="col-3">
+                                    <div class="color-suggestion" data-color="#28a745" style="background-color: #28a745; height: 30px; border-radius: 4px; cursor: pointer;" title="Green"></div>
+                                </div>
+                                <div class="col-3">
+                                    <div class="color-suggestion" data-color="#dc3545" style="background-color: #dc3545; height: 30px; border-radius: 4px; cursor: pointer;" title="Red"></div>
+                                </div>
+                                <div class="col-3">
+                                    <div class="color-suggestion" data-color="#ffc107" style="background-color: #ffc107; height: 30px; border-radius: 4px; cursor: pointer;" title="Yellow"></div>
+                                </div>
+                                <div class="col-3">
+                                    <div class="color-suggestion" data-color="#17a2b8" style="background-color: #17a2b8; height: 30px; border-radius: 4px; cursor: pointer;" title="Cyan"></div>
+                                </div>
+                                <div class="col-3">
+                                    <div class="color-suggestion" data-color="#6f42c1" style="background-color: #6f42c1; height: 30px; border-radius: 4px; cursor: pointer;" title="Purple"></div>
+                                </div>
+                                <div class="col-3">
+                                    <div class="color-suggestion" data-color="#fd7e14" style="background-color: #fd7e14; height: 30px; border-radius: 4px; cursor: pointer;" title="Orange"></div>
+                                </div>
+                                <div class="col-3">
+                                    <div class="color-suggestion" data-color="#e83e8c" style="background-color: #e83e8c; height: 30px; border-radius: 4px; cursor: pointer;" title="Pink"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Update preview when form fields change
+    function updatePreview() {
+        var name = $('#id_name').val() || '{% trans "Category Name" %}';
+        var description = $('#id_description').val() || '{% trans "Category description will appear here" %}';
+        var color = $('#id_color').val() || '#007bff';
+        var isActive = $('#id_is_active').is(':checked');
+        
+        $('.category-name-preview').text(name);
+        $('.category-desc-preview').text(description);
+        $('.category-color-preview').css('background-color', color);
+        $('#colorText').val(color);
+        
+        if (isActive) {
+            $('.category-status-preview').html('<span class="badge bg-success">{% trans "Active" %}</span>');
+        } else {
+            $('.category-status-preview').html('<span class="badge bg-secondary">{% trans "Inactive" %}</span>');
+        }
+    }
+
+    // Bind events
+    $('#id_name, #id_description, #id_color, #id_is_active').on('input change', updatePreview);
+
+    // Color suggestions
+    $('.color-suggestion').on('click', function() {
+        var color = $(this).data('color');
+        $('#id_color').val(color);
+        updatePreview();
+    });
+
+    // Form validation
+    $('#categoryForm').on('submit', function(e) {
+        var name = $('#id_name').val().trim();
+        if (!name) {
+            e.preventDefault();
+            alert('{% trans "Please enter a category name." %}');
+            $('#id_name').focus();
+            return false;
+        }
+    });
+
+    // Initialize preview
+    updatePreview();
+
+    // Name field auto-focus
+    $('#id_name').focus();
+});
+</script>
+{% endblock %}

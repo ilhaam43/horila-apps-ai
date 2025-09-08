@@ -1,0 +1,813 @@
+{% extends 'knowledge/base_knowledge.html' %}
+{% load static %}
+
+{% block title %}Categories - Knowledge Base{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/knowledge.css' %}">
+<style>
+.category-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 3rem 0;
+    margin-bottom: 2rem;
+}
+
+.category-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.category-card {
+    background: white;
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    overflow: hidden;
+    position: relative;
+}
+
+.category-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.category-card-header {
+    padding: 1.5rem;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-bottom: 1px solid #dee2e6;
+}
+
+.category-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: white;
+    margin-bottom: 1rem;
+}
+
+.category-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+    text-decoration: none;
+}
+
+.category-title:hover {
+    color: #667eea;
+    text-decoration: none;
+}
+
+.category-description {
+    color: #6c757d;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.category-card-body {
+    padding: 1.5rem;
+}
+
+.category-stats {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.stat-item {
+    text-align: center;
+    flex: 1;
+}
+
+.stat-number {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #2c3e50;
+    display: block;
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.category-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.category-tag {
+    background: #e9ecef;
+    color: #495057;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    text-decoration: none;
+}
+
+.category-tag:hover {
+    background: #667eea;
+    color: white;
+    text-decoration: none;
+}
+
+.category-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.category-btn {
+    flex: 1;
+    padding: 0.5rem;
+    border: none;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    text-decoration: none;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.btn-view {
+    background: #667eea;
+    color: white;
+}
+
+.btn-view:hover {
+    background: #5a6fd8;
+    color: white;
+}
+
+.btn-manage {
+    background: #f8f9fa;
+    color: #495057;
+    border: 1px solid #dee2e6;
+}
+
+.btn-manage:hover {
+    background: #e9ecef;
+    color: #495057;
+}
+
+.category-badge {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: #28a745;
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.category-badge.featured {
+    background: #ffc107;
+    color: #212529;
+}
+
+.category-badge.new {
+    background: #17a2b8;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: #6c757d;
+}
+
+.empty-state i {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.category-filters {
+    background: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.filter-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.filter-btn {
+    padding: 0.5rem 1rem;
+    border: 1px solid #dee2e6;
+    background: white;
+    color: #495057;
+    border-radius: 2rem;
+    text-decoration: none;
+    font-size: 0.875rem;
+    transition: all 0.3s ease;
+}
+
+.filter-btn:hover,
+.filter-btn.active {
+    background: #667eea;
+    color: white;
+    border-color: #667eea;
+    text-decoration: none;
+}
+
+.category-search {
+    position: relative;
+    margin-bottom: 1rem;
+}
+
+.category-search input {
+    padding-left: 2.5rem;
+}
+
+.category-search .search-icon {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #6c757d;
+}
+
+.view-toggle {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.view-btn {
+    padding: 0.5rem;
+    border: 1px solid #dee2e6;
+    background: white;
+    color: #495057;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.view-btn:hover,
+.view-btn.active {
+    background: #667eea;
+    color: white;
+    border-color: #667eea;
+}
+
+.category-list-view {
+    display: none;
+}
+
+.category-list-item {
+    background: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.category-list-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    color: white;
+    flex-shrink: 0;
+}
+
+.category-list-content {
+    flex: 1;
+}
+
+.category-list-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 0.25rem;
+    text-decoration: none;
+}
+
+.category-list-title:hover {
+    color: #667eea;
+    text-decoration: none;
+}
+
+.category-list-description {
+    color: #6c757d;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+
+.category-list-meta {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.8rem;
+    color: #6c757d;
+}
+
+.category-list-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+    .category-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .category-header {
+        padding: 2rem 0;
+    }
+    
+    .filter-buttons {
+        justify-content: center;
+    }
+    
+    .category-list-item {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .category-list-meta {
+        justify-content: center;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="category-header">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <h1 class="display-4 mb-3">Knowledge Categories</h1>
+                <p class="lead mb-0">Explore organized collections of documents and resources</p>
+            </div>
+            <div class="col-lg-4 text-lg-right">
+                {% if perms.knowledge.add_documentcategory %}
+                <a href="{% url 'knowledge:category_create' %}" class="btn btn-light btn-lg">
+                    <i class="fas fa-plus mr-2"></i> Add Category
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid">
+    <!-- Filters and Search -->
+    <div class="category-filters">
+        <div class="row align-items-center">
+            <div class="col-lg-6">
+                <div class="category-search">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" 
+                           class="form-control" 
+                           placeholder="Search categories..." 
+                           id="category-search"
+                           value="{{ request.GET.search }}">
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="filter-buttons">
+                    <a href="?" class="filter-btn {% if not request.GET.filter %}active{% endif %}">All</a>
+                    <a href="?filter=active" class="filter-btn {% if request.GET.filter == 'active' %}active{% endif %}">Active</a>
+                    <a href="?filter=featured" class="filter-btn {% if request.GET.filter == 'featured' %}active{% endif %}">Featured</a>
+                    <a href="?filter=recent" class="filter-btn {% if request.GET.filter == 'recent' %}active{% endif %}">Recent</a>
+                </div>
+            </div>
+            <div class="col-lg-2 text-lg-right">
+                <div class="view-toggle">
+                    <button class="view-btn active" data-view="grid" title="Grid View">
+                        <i class="fas fa-th"></i>
+                    </button>
+                    <button class="view-btn" data-view="list" title="List View">
+                        <i class="fas fa-list"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if categories %}
+    <!-- Grid View -->
+    <div class="category-grid-view">
+        <div class="category-grid" id="category-grid">
+            {% for category in categories %}
+            <div class="category-card" data-category="{{ category.name|lower }}">
+                {% if category.is_featured %}
+                <div class="category-badge featured">Featured</div>
+                {% elif category.is_new %}
+                <div class="category-badge new">New</div>
+                {% endif %}
+                
+                <div class="category-card-header">
+                    <div class="category-icon" data-color="{{ category.color|default:'#667eea' }}">
+                    <i class="{{ category.icon|default:'fas fa-folder' }}"></i>
+                </div>
+                    <a href="{% url 'knowledge:category_detail' category.id %}" class="category-title">
+                    {{ category.name }}
+                </a>
+                    <div class="category-description">
+                        {{ category.description|truncatewords:15 }}
+                    </div>
+                </div>
+                
+                <div class="category-card-body">
+                    <div class="category-stats">
+                        <div class="stat-item">
+                            <span class="stat-number">{{ category.document_count }}</span>
+                            <span class="stat-label">Documents</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number">{{ category.total_views }}</span>
+                            <span class="stat-label">Views</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number">{{ category.contributors_count }}</span>
+                            <span class="stat-label">Contributors</span>
+                        </div>
+                    </div>
+                    
+                    {% if category.popular_tags %}
+                    <div class="category-tags">
+                        {% for tag in category.popular_tags|slice:":3" %}
+                        <a href="{% url 'knowledge:document_search' %}?category={{ category.id }}&tag={{ tag.name }}" class="category-tag">
+                        {{ tag.name }}
+                    </a>
+                        {% endfor %}
+                        {% if category.popular_tags|length > 3 %}
+                        <span class="category-tag">+{{ category.popular_tags|length|add:"-3" }} more</span>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    
+                    <div class="category-actions">
+                        <a href="{% url 'knowledge:category_detail' category.id %}" class="category-btn btn-view">
+                            <i class="fas fa-eye mr-1"></i> View
+                        </a>
+                        {% if perms.knowledge.change_documentcategory %}
+                        <a href="{% url 'knowledge:category_edit' category.id %}" class="category-btn btn-manage">
+                            <i class="fas fa-edit mr-1"></i> Edit
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <!-- List View -->
+    <div class="category-list-view" id="category-list">
+        {% for category in categories %}
+        <div class="category-list-item" data-category="{{ category.name|lower }}">
+            <div class="category-list-icon" data-color="{{ category.color|default:'#667eea' }}">
+                <i class="{{ category.icon|default:'fas fa-folder' }}"></i>
+            </div>
+            
+            <div class="category-list-content">
+                <a href="{% url 'knowledge:category_detail' category.id %}" class="category-list-title">
+                {{ category.name }}
+                {% if category.is_featured %}
+                <i class="fas fa-star text-warning ml-1" title="Featured"></i>
+                {% endif %}
+            </a>
+                <div class="category-list-description">
+                    {{ category.description|truncatewords:20 }}
+                </div>
+                <div class="category-list-meta">
+                    <span><i class="fas fa-file mr-1"></i> {{ category.document_count }} documents</span>
+                    <span><i class="fas fa-eye mr-1"></i> {{ category.total_views }} views</span>
+                    <span><i class="fas fa-users mr-1"></i> {{ category.contributors_count }} contributors</span>
+                    <span><i class="fas fa-calendar mr-1"></i> Updated {{ category.updated_at|timesince }} ago</span>
+                </div>
+            </div>
+            
+            <div class="category-list-actions">
+                <a href="{% url 'knowledge:category_detail' category.id %}" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-eye mr-1"></i> View
+                </a>
+                {% if perms.knowledge.change_documentcategory %}
+                <a href="{% url 'knowledge:category_edit' category.id %}" class="btn btn-sm btn-outline-secondary">
+                    <i class="fas fa-edit mr-1"></i> Edit
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <!-- Pagination -->
+    {% if is_paginated %}
+    <div class="d-flex justify-content-center mt-4">
+        <nav>
+            <ul class="pagination">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1{% if request.GET.search %}&amp;search={{ request.GET.search }}{% endif %}{% if request.GET.filter %}&amp;filter={{ request.GET.filter }}{% endif %}">&laquo; First</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&amp;search={{ request.GET.search }}{% endif %}{% if request.GET.filter %}&amp;filter={{ request.GET.filter }}{% endif %}">Previous</a>
+                </li>
+                {% endif %}
+                
+                {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                <li class="page-item active">
+                    <span class="page-link">{{ num }}</span>
+                </li>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ num }}{% if request.GET.search %}&amp;search={{ request.GET.search }}{% endif %}{% if request.GET.filter %}&amp;filter={{ request.GET.filter }}{% endif %}">{{ num }}</a>
+                </li>
+                {% endif %}
+                {% endfor %}
+                
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&amp;search={{ request.GET.search }}{% endif %}{% if request.GET.filter %}&amp;filter={{ request.GET.filter }}{% endif %}">Next</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.search %}&amp;search={{ request.GET.search }}{% endif %}{% if request.GET.filter %}&amp;filter={{ request.GET.filter }}{% endif %}">Last &raquo;</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+    
+    {% else %}
+    <!-- Empty State -->
+    <div class="empty-state">
+        <i class="fas fa-folder-open"></i>
+        <h4>No categories found</h4>
+        <p>{% if request.GET.search %}No categories match your search criteria.{% else %}Start organizing your knowledge by creating categories.{% endif %}</p>
+        {% if perms.knowledge.add_documentcategory %}
+        <a href="{% url 'knowledge:category_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus mr-2"></i> Create First Category
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- Quick Stats Modal -->
+<div class="modal fade" id="statsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Category Statistics</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="row text-center">
+                    <div class="col-md-3">
+                        <div class="h2 text-primary mb-0">{{ total_categories }}</div>
+                        <small class="text-muted">Total Categories</small>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="h2 text-success mb-0">{{ total_documents }}</div>
+                        <small class="text-muted">Total Documents</small>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="h2 text-info mb-0">{{ total_views }}</div>
+                        <small class="text-muted">Total Views</small>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="h2 text-warning mb-0">{{ active_categories }}</div>
+                        <small class="text-muted">Active Categories</small>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <h6>Most Popular Categories</h6>
+                <div class="list-group list-group-flush">
+                    {% for category in popular_categories|slice:":5" %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="{{ category.icon|default:'fas fa-folder' }} mr-2" data-color="{{ category.color|default:'#667eea' }}"></i>
+                            {{ category.name }}
+                        </div>
+                        <span class="badge badge-primary badge-pill">{{ category.document_count }} docs</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/knowledge.js' %}"></script>
+<script>
+let searchTimeout;
+
+$(document).ready(function() {
+    // Apply dynamic colors
+    $('.category-icon[data-color], .category-list-icon[data-color]').each(function() {
+        const color = $(this).data('color');
+        $(this).css('background-color', color);
+    });
+    
+    $('i[data-color]').each(function() {
+        const color = $(this).data('color');
+        $(this).css('color', color);
+    });
+    
+    initializeCategoryView();
+    bindSearchEvents();
+    bindViewToggle();
+});
+
+function initializeCategoryView() {
+    // Load saved view preference
+    const savedView = localStorage.getItem('categoryView') || 'grid';
+    switchView(savedView);
+}
+
+function bindSearchEvents() {
+    $('#category-search').on('input', function() {
+        const query = $(this).val().toLowerCase();
+        
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            filterCategories(query);
+        }, 300);
+    });
+    
+    // Real-time search without page reload
+    $('#category-search').on('keypress', function(e) {
+        if (e.which === 13) { // Enter key
+            e.preventDefault();
+            const query = $(this).val();
+            updateURL({ search: query });
+        }
+    });
+}
+
+function filterCategories(query) {
+    const categories = $('.category-card, .category-list-item');
+    
+    categories.each(function() {
+        const categoryName = $(this).data('category');
+        const categoryText = $(this).text().toLowerCase();
+        
+        if (categoryName.includes(query) || categoryText.includes(query)) {
+            $(this).show();
+        } else {
+            $(this).hide();
+        }
+    });
+    
+    // Show/hide empty state
+    const visibleCategories = categories.filter(':visible').length;
+    if (visibleCategories === 0 && query) {
+        showEmptySearchState(query);
+    } else {
+        hideEmptySearchState();
+    }
+}
+
+function showEmptySearchState(query) {
+    if ($('#empty-search-state').length === 0) {
+        const emptyState = $(`
+            <div id="empty-search-state" class="empty-state">
+                <i class="fas fa-search"></i>
+                <h4>No categories found</h4>
+                <p>No categories match "${query}". Try different keywords.</p>
+            </div>
+        `);
+        $('.category-grid-view, .category-list-view').after(emptyState);
+    }
+}
+
+function hideEmptySearchState() {
+    $('#empty-search-state').remove();
+}
+
+function bindViewToggle() {
+    $('.view-btn').on('click', function() {
+        const view = $(this).data('view');
+        switchView(view);
+        
+        // Save preference
+        localStorage.setItem('categoryView', view);
+        
+        // Update active state
+        $('.view-btn').removeClass('active');
+        $(this).addClass('active');
+    });
+}
+
+function switchView(view) {
+    if (view === 'list') {
+        $('.category-grid-view').hide();
+        $('.category-list-view').show();
+        $('.view-btn[data-view="list"]').addClass('active');
+        $('.view-btn[data-view="grid"]').removeClass('active');
+    } else {
+        $('.category-list-view').hide();
+        $('.category-grid-view').show();
+        $('.view-btn[data-view="grid"]').addClass('active');
+        $('.view-btn[data-view="list"]').removeClass('active');
+    }
+}
+
+function updateURL(params) {
+    const url = new URL(window.location);
+    
+    Object.keys(params).forEach(key => {
+        if (params[key]) {
+            url.searchParams.set(key, params[key]);
+        } else {
+            url.searchParams.delete(key);
+        }
+    });
+    
+    window.history.pushState({}, '', url);
+}
+
+// Category card hover effects
+$('.category-card').on('mouseenter', function() {
+    $(this).find('.category-actions').addClass('show');
+}).on('mouseleave', function() {
+    $(this).find('.category-actions').removeClass('show');
+});
+
+// Quick stats
+$('.category-header').on('dblclick', function() {
+    $('#statsModal').modal('show');
+});
+
+// Keyboard shortcuts
+$(document).on('keydown', function(e) {
+    // Ctrl/Cmd + K to focus search
+    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        $('#category-search').focus();
+    }
+    
+    // Ctrl/Cmd + G to toggle grid view
+    if ((e.ctrlKey || e.metaKey) && e.key === 'g') {
+        e.preventDefault();
+        $('.view-btn[data-view="grid"]').click();
+    }
+    
+    // Ctrl/Cmd + L to toggle list view
+    if ((e.ctrlKey || e.metaKey) && e.key === 'l') {
+        e.preventDefault();
+        $('.view-btn[data-view="list"]').click();
+    }
+});
+
+// Auto-focus search on page load
+$('#category-search').focus();
+
+// Animate category cards on scroll
+if (typeof IntersectionObserver !== 'undefined') {
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.opacity = '1';
+                entry.target.style.transform = 'translateY(0)';
+            }
+        });
+    }, {
+        threshold: 0.1
+    });
+    
+    $('.category-card').each(function(index) {
+        $(this).css({
+            opacity: '0',
+            transform: 'translateY(20px)',
+            transition: `opacity 0.6s ease ${index * 0.1}s, transform 0.6s ease ${index * 0.1}s`
+        });
+        observer.observe(this);
+    });
+}
+</script>
+{% endblock %}

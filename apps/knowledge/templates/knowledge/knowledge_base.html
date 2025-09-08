@@ -1,0 +1,1138 @@
+{% extends 'knowledge/base_knowledge.html' %}
+{% load static %}
+
+{% block title %}Knowledge Base - {{ knowledge_base.name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/knowledge.css' %}">
+<style>
+.kb-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 3rem 0;
+    margin-bottom: 2rem;
+}
+
+.kb-nav {
+    background: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    padding: 1rem;
+    margin-bottom: 2rem;
+    position: sticky;
+    top: 1rem;
+    z-index: 100;
+}
+
+.kb-nav-item {
+    padding: 0.5rem 1rem;
+    margin: 0 0.25rem;
+    border-radius: 0.25rem;
+    text-decoration: none;
+    color: #495057;
+    transition: all 0.3s ease;
+    display: inline-block;
+}
+
+.kb-nav-item:hover,
+.kb-nav-item.active {
+    background: #667eea;
+    color: white;
+    text-decoration: none;
+}
+
+.kb-section {
+    background: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    padding: 2rem;
+    margin-bottom: 2rem;
+}
+
+.kb-section-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.document-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+}
+
+.document-card {
+    border: 1px solid #e9ecef;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.document-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    border-color: #667eea;
+}
+
+.document-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: #667eea;
+    transform: scaleY(0);
+    transition: transform 0.3s ease;
+}
+
+.document-card:hover::before {
+    transform: scaleY(1);
+}
+
+.document-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+    text-decoration: none;
+    display: block;
+}
+
+.document-title:hover {
+    color: #667eea;
+    text-decoration: none;
+}
+
+.document-excerpt {
+    color: #6c757d;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin-bottom: 1rem;
+}
+
+.document-meta {
+    display: flex;
+    justify-content: between;
+    align-items: center;
+    font-size: 0.8rem;
+    color: #6c757d;
+}
+
+.document-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    margin-top: 0.5rem;
+}
+
+.document-tag {
+    background: #f8f9fa;
+    color: #495057;
+    padding: 0.125rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    text-decoration: none;
+}
+
+.document-tag:hover {
+    background: #667eea;
+    color: white;
+    text-decoration: none;
+}
+
+.ai-insights {
+    background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+    border-left: 4px solid #2196f3;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.insight-item {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+}
+
+.insight-item:last-child {
+    margin-bottom: 0;
+}
+
+.insight-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #2196f3;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+    flex-shrink: 0;
+}
+
+.insight-content h6 {
+    color: #1976d2;
+    margin-bottom: 0.25rem;
+}
+
+.insight-content p {
+    color: #424242;
+    margin-bottom: 0;
+    font-size: 0.9rem;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: white;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+}
+
+.stat-number {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #2c3e50;
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.stat-label {
+    color: #6c757d;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.stat-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: white;
+    margin: 0 auto 1rem;
+}
+
+.recent-activity {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.activity-item {
+    display: flex;
+    align-items: center;
+    padding: 1rem 0;
+    border-bottom: 1px solid #f8f9fa;
+}
+
+.activity-item:last-child {
+    border-bottom: none;
+}
+
+.activity-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+    flex-shrink: 0;
+    font-size: 0.9rem;
+}
+
+.activity-content {
+    flex: 1;
+}
+
+.activity-title {
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 0.25rem;
+}
+
+.activity-description {
+    color: #6c757d;
+    font-size: 0.9rem;
+    margin-bottom: 0.25rem;
+}
+
+.activity-time {
+    color: #6c757d;
+    font-size: 0.8rem;
+}
+
+.search-widget {
+    background: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.search-input {
+    border: 2px solid #e9ecef;
+    border-radius: 2rem;
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    width: 100%;
+    transition: all 0.3s ease;
+}
+
+.search-input:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+}
+
+.quick-links {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.quick-link {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 0.5rem;
+    text-decoration: none;
+    color: #495057;
+    transition: all 0.3s ease;
+}
+
+.quick-link:hover {
+    background: #667eea;
+    color: white;
+    text-decoration: none;
+    transform: translateX(5px);
+}
+
+.quick-link-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #667eea;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+    transition: all 0.3s ease;
+}
+
+.quick-link:hover .quick-link-icon {
+    background: white;
+    color: #667eea;
+}
+
+.floating-toc {
+    position: fixed;
+    right: 2rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    padding: 1rem;
+    max-width: 250px;
+    max-height: 400px;
+    overflow-y: auto;
+    z-index: 1000;
+    display: none;
+}
+
+.toc-item {
+    display: block;
+    padding: 0.5rem 0;
+    color: #495057;
+    text-decoration: none;
+    font-size: 0.9rem;
+    border-left: 2px solid transparent;
+    padding-left: 1rem;
+    transition: all 0.3s ease;
+}
+
+.toc-item:hover,
+.toc-item.active {
+    color: #667eea;
+    border-left-color: #667eea;
+    text-decoration: none;
+}
+
+@media (max-width: 1200px) {
+    .floating-toc {
+        display: none !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .kb-header {
+        padding: 2rem 0;
+    }
+    
+    .document-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .quick-links {
+        grid-template-columns: 1fr;
+    }
+    
+    .kb-nav {
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="kb-header">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <h1 class="display-4 mb-3">{{ knowledge_base.name }}</h1>
+                <p class="lead mb-0">{{ knowledge_base.description }}</p>
+            </div>
+            <div class="col-lg-4 text-lg-right">
+                <div class="d-flex justify-content-lg-end gap-2">
+                    {% if perms.knowledge.change_knowledgebase %}
+                    <a href="{% url 'knowledge:dashboard' %}" class="btn btn-light">
+                        <i class="fas fa-edit mr-1"></i> Edit
+                    </a>
+                    {% endif %}
+                    <button class="btn btn-outline-light" data-toggle="modal" data-target="#shareModal">
+                        <i class="fas fa-share mr-1"></i> Share
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container-fluid">
+    <!-- Navigation -->
+    <div class="kb-nav">
+        <div class="d-flex align-items-center justify-content-between">
+            <div class="kb-nav-links">
+                <a href="#overview" class="kb-nav-item active" data-section="overview">
+                    <i class="fas fa-home mr-1"></i> Overview
+                </a>
+                <a href="#documents" class="kb-nav-item" data-section="documents">
+                    <i class="fas fa-file-alt mr-1"></i> Documents
+                </a>
+                <a href="#categories" class="kb-nav-item" data-section="categories">
+                    <i class="fas fa-folder mr-1"></i> Categories
+                </a>
+                <a href="#insights" class="kb-nav-item" data-section="insights">
+                    <i class="fas fa-lightbulb mr-1"></i> AI Insights
+                </a>
+                <a href="#activity" class="kb-nav-item" data-section="activity">
+                    <i class="fas fa-chart-line mr-1"></i> Activity
+                </a>
+            </div>
+            <div class="kb-nav-actions">
+                <button class="btn btn-sm btn-outline-primary" id="toggle-toc">
+                    <i class="fas fa-list mr-1"></i> TOC
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Main Content -->
+        <div class="col-lg-9">
+            <!-- Overview Section -->
+            <section id="overview" class="kb-section">
+                <h2 class="kb-section-title">
+                    <i class="fas fa-home mr-2"></i> Overview
+                </h2>
+                
+                <!-- Search Widget -->
+                <div class="search-widget">
+                    <h5 class="mb-3">Search Knowledge Base</h5>
+                    <form method="get" action="{% url 'knowledge:document_search' %}">
+                        <input type="hidden" name="kb" value="{{ knowledge_base.id }}">
+                        <input type="text" 
+                               name="q" 
+                               class="search-input" 
+                               placeholder="Search documents, topics, and insights..."
+                               autocomplete="off">
+                    </form>
+                    
+                    <div class="quick-links">
+                        <a href="{% url 'knowledge:document_search' %}?kb={{ knowledge_base.id }}&recent=1" class="quick-link">
+                            <div class="quick-link-icon">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <div>
+                                <div class="font-weight-bold">Recent Documents</div>
+                                <small class="text-muted">Latest additions</small>
+                            </div>
+                        </a>
+                        <a href="{% url 'knowledge:document_search' %}?kb={{ knowledge_base.id }}&featured=1" class="quick-link">
+                            <div class="quick-link-icon">
+                                <i class="fas fa-star"></i>
+                            </div>
+                            <div>
+                                <div class="font-weight-bold">Featured Content</div>
+                                <small class="text-muted">Highlighted documents</small>
+                            </div>
+                        </a>
+                        <a href="{% url 'knowledge:document_search' %}?kb={{ knowledge_base.id }}&has_ai=1" class="quick-link">
+                            <div class="quick-link-icon">
+                                <i class="fas fa-robot"></i>
+                            </div>
+                            <div>
+                                <div class="font-weight-bold">AI Processed</div>
+                                <small class="text-muted">Enhanced with AI</small>
+                            </div>
+                        </a>
+                        <a href="{% url 'knowledge:category_list' %}?kb={{ knowledge_base.id }}" class="quick-link">
+                            <div class="quick-link-icon">
+                                <i class="fas fa-folder-open"></i>
+                            </div>
+                            <div>
+                                <div class="font-weight-bold">Browse Categories</div>
+                                <small class="text-muted">Organized content</small>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Statistics -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: #667eea;">
+                            <i class="fas fa-file-alt"></i>
+                        </div>
+                        <span class="stat-number">{{ knowledge_base.total_documents }}</span>
+                        <div class="stat-label">Total Documents</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: #28a745;">
+                            <i class="fas fa-folder"></i>
+                        </div>
+                        <span class="stat-number">{{ knowledge_base.total_categories }}</span>
+                        <div class="stat-label">Categories</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: #17a2b8;">
+                            <i class="fas fa-eye"></i>
+                        </div>
+                        <span class="stat-number">{{ knowledge_base.total_views }}</span>
+                        <div class="stat-label">Total Views</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon" style="background: #ffc107;">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <span class="stat-number">{{ knowledge_base.contributors_count }}</span>
+                        <div class="stat-label">Contributors</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Documents Section -->
+            <section id="documents" class="kb-section">
+                <h2 class="kb-section-title">
+                    <i class="fas fa-file-alt mr-2"></i> Recent Documents
+                </h2>
+                
+                <div class="document-grid">
+                    {% for document in recent_documents %}
+                    <div class="document-card">
+                        <a href="{% url 'knowledge:document_detail' document.id %}" class="document-title">
+                            {{ document.title }}
+                        </a>
+                        <div class="document-excerpt">
+                            {{ document.description|truncatewords:20|default:"No description available" }}
+                        </div>
+                        <div class="document-meta">
+                            <span><i class="fas fa-user mr-1"></i> {{ document.created_by.get_full_name|default:document.created_by.username }}</span>
+                            <span><i class="fas fa-calendar mr-1"></i> {{ document.created_at|date:"M d" }}</span>
+                        </div>
+                        {% if document.tags.all %}
+                        <div class="document-tags">
+                            {% for tag in document.tags.all|slice:":3" %}
+                            <a href="{% url 'knowledge:document_search' %}?kb={{ knowledge_base.id }}&tag={{ tag.name }}" class="document-tag">
+                                {{ tag.name }}
+                            </a>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% empty %}
+                    <div class="col-12 text-center py-4">
+                        <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
+                        <h5>No documents yet</h5>
+                        <p class="text-muted">Start building your knowledge base by adding documents.</p>
+                        {% if perms.knowledge.add_knowledgedocument %}
+                        <a href="{% url 'knowledge:document_create' %}" class="btn btn-primary">
+                            <i class="fas fa-plus mr-1"></i> Add First Document
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                {% if recent_documents %}
+                <div class="text-center mt-4">
+                    <a href="{% url 'knowledge:document_list' %}?kb={{ knowledge_base.id }}" class="btn btn-outline-primary">
+                        <i class="fas fa-arrow-right mr-1"></i> View All Documents
+                    </a>
+                </div>
+                {% endif %}
+            </section>
+
+            <!-- Categories Section -->
+            <section id="categories" class="kb-section">
+                <h2 class="kb-section-title">
+                    <i class="fas fa-folder mr-2"></i> Categories
+                </h2>
+                
+                <div class="row">
+                    {% for category in categories %}
+                    <div class="col-md-6 col-lg-4 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="rounded-circle d-flex align-items-center justify-content-center mr-3 category-icon-kb" 
+                                         style="width: 40px; height: 40px; color: white;"
+                                         data-color="{{ category.color|default:'#667eea' }}">
+                                        <i class="{{ category.icon|default:'fas fa-folder' }}"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="card-title mb-0">
+                                            <a href="{% url 'knowledge:category_detail' category.id %}" class="text-decoration-none">
+                                                {{ category.name }}
+                                            </a>
+                                        </h6>
+                                        <small class="text-muted">{{ category.document_count }} documents</small>
+                                    </div>
+                                </div>
+                                <p class="card-text small text-muted">
+                                    {{ category.description|truncatewords:15 }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="col-12 text-center py-4">
+                        <i class="fas fa-folder-open fa-3x text-muted mb-3"></i>
+                        <h5>No categories yet</h5>
+                        <p class="text-muted">Organize your content by creating categories.</p>
+                        {% if perms.knowledge.add_documentcategory %}
+                        <a href="{% url 'knowledge:category_create' %}" class="btn btn-primary">
+                            <i class="fas fa-plus mr-1"></i> Create Category
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                {% if categories %}
+                <div class="text-center mt-4">
+                    <a href="{% url 'knowledge:category_list' %}?kb={{ knowledge_base.id }}" class="btn btn-outline-primary">
+                        <i class="fas fa-arrow-right mr-1"></i> View All Categories
+                    </a>
+                </div>
+                {% endif %}
+            </section>
+
+            <!-- AI Insights Section -->
+            <section id="insights" class="kb-section">
+                <h2 class="kb-section-title">
+                    <i class="fas fa-lightbulb mr-2"></i> AI Insights
+                </h2>
+                
+                <div class="ai-insights">
+                    <div class="insight-item">
+                        <div class="insight-icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <div class="insight-content">
+                            <h6>Content Growth</h6>
+                            <p>Your knowledge base has grown by {{ growth_percentage }}% this month with {{ new_documents_count }} new documents added.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="insight-item">
+                        <div class="insight-icon">
+                            <i class="fas fa-tags"></i>
+                        </div>
+                        <div class="insight-content">
+                            <h6>Popular Topics</h6>
+                            <p>Most discussed topics: 
+                                {% for tag in popular_tags|slice:":3" %}
+                                    <span class="badge badge-secondary mr-1">{{ tag.name }}</span>
+                                {% endfor %}
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="insight-item">
+                        <div class="insight-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="insight-content">
+                            <h6>User Engagement</h6>
+                            <p>{{ engagement_score }}% of documents have been viewed this week. Top contributors are actively adding valuable content.</p>
+                        </div>
+                    </div>
+                    
+                    {% if ai_recommendations %}
+                    <div class="insight-item">
+                        <div class="insight-icon">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        <div class="insight-content">
+                            <h6>AI Recommendations</h6>
+                            <p>{{ ai_recommendations|truncatewords:30 }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </section>
+
+            <!-- Activity Section -->
+            <section id="activity" class="kb-section">
+                <h2 class="kb-section-title">
+                    <i class="fas fa-chart-line mr-2"></i> Recent Activity
+                </h2>
+                
+                <div class="recent-activity">
+                    {% for activity in recent_activities %}
+                    <div class="activity-item">
+                        <div class="activity-icon activity-icon-kb" data-color="{{ activity.color|default:'#667eea' }}">
+                            <i class="{{ activity.icon|default:'fas fa-file' }}"></i>
+                        </div>
+                        <div class="activity-content">
+                            <div class="activity-title">{{ activity.title }}</div>
+                            <div class="activity-description">{{ activity.description }}</div>
+                            <div class="activity-time">{{ activity.created_at|timesince }} ago</div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-clock fa-2x text-muted mb-3"></i>
+                        <h6>No recent activity</h6>
+                        <p class="text-muted mb-0">Activity will appear here as users interact with the knowledge base.</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-3">
+            <!-- Knowledge Base Info -->
+            <div class="kb-section">
+                <h5 class="mb-3"><i class="fas fa-info-circle mr-2"></i> Information</h5>
+                
+                <div class="mb-3">
+                    <strong>Created:</strong><br>
+                    <span class="text-muted">{{ knowledge_base.created_at|date:"F d, Y" }}</span>
+                </div>
+                
+                <div class="mb-3">
+                    <strong>Last Updated:</strong><br>
+                    <span class="text-muted">{{ knowledge_base.updated_at|date:"F d, Y" }}</span>
+                </div>
+                
+                <div class="mb-3">
+                    <strong>Owner:</strong><br>
+                    <span class="text-muted">{{ knowledge_base.created_by.get_full_name|default:knowledge_base.created_by.username }}</span>
+                </div>
+                
+                {% if knowledge_base.tags.all %}
+                <div class="mb-3">
+                    <strong>Tags:</strong><br>
+                    {% for tag in knowledge_base.tags.all %}
+                    <span class="badge badge-secondary mr-1 mb-1">{{ tag.name }}</span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Quick Actions -->
+            <div class="kb-section">
+                <h5 class="mb-3"><i class="fas fa-bolt mr-2"></i> Quick Actions</h5>
+                
+                <div class="d-grid gap-2">
+                    {% if perms.knowledge.add_knowledgedocument %}
+                    <a href="{% url 'knowledge:document_create' %}?kb={{ knowledge_base.id }}" class="btn btn-primary btn-sm">
+                        <i class="fas fa-plus mr-1"></i> Add Document
+                    </a>
+                    {% endif %}
+                    
+                    <a href="{% url 'knowledge:document_search' %}?kb={{ knowledge_base.id }}" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-search mr-1"></i> Search
+                    </a>
+                    
+                    {% if perms.knowledge.add_documentcategory %}
+                    <a href="{% url 'knowledge:category_create' %}?kb={{ knowledge_base.id }}" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-folder-plus mr-1"></i> New Category
+                    </a>
+                    {% endif %}
+                    
+                    <button class="btn btn-outline-info btn-sm" data-toggle="modal" data-target="#analyticsModal">
+                        <i class="fas fa-chart-bar mr-1"></i> Analytics
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Top Contributors -->
+            {% if top_contributors %}
+            <div class="kb-section">
+                <h5 class="mb-3"><i class="fas fa-users mr-2"></i> Top Contributors</h5>
+                
+                {% for contributor in top_contributors %}
+                <div class="d-flex align-items-center mb-2">
+                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mr-2" 
+                         style="width: 32px; height: 32px; font-size: 0.8rem;">
+                        {{ contributor.user.first_name.0|default:contributor.user.username.0 }}{{ contributor.user.last_name.0 }}
+                    </div>
+                    <div class="flex-grow-1">
+                        <div class="font-weight-bold" style="font-size: 0.9rem;">
+                            {{ contributor.user.get_full_name|default:contributor.user.username }}
+                        </div>
+                        <small class="text-muted">{{ contributor.document_count }} documents</small>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Floating Table of Contents -->
+<div class="floating-toc" id="floating-toc">
+    <h6 class="mb-3">Contents</h6>
+    <a href="#overview" class="toc-item active" data-section="overview">Overview</a>
+    <a href="#documents" class="toc-item" data-section="documents">Documents</a>
+    <a href="#categories" class="toc-item" data-section="categories">Categories</a>
+    <a href="#insights" class="toc-item" data-section="insights">AI Insights</a>
+    <a href="#activity" class="toc-item" data-section="activity">Activity</a>
+</div>
+
+<!-- Share Modal -->
+<div class="modal fade" id="shareModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Share Knowledge Base</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Share Link</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" value="{{ request.build_absolute_uri }}" readonly id="share-url">
+                        <div class="input-group-append">
+                            <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('#share-url')">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row text-center">
+                    <div class="col-4">
+                        <a href="#" class="btn btn-outline-primary btn-block" onclick="shareViaEmail()">
+                            <i class="fas fa-envelope mb-1"></i><br>
+                            <small>Email</small>
+                        </a>
+                    </div>
+                    <div class="col-4">
+                        <a href="#" class="btn btn-outline-info btn-block" onclick="shareViaTwitter()">
+                            <i class="fab fa-twitter mb-1"></i><br>
+                            <small>Twitter</small>
+                        </a>
+                    </div>
+                    <div class="col-4">
+                        <a href="#" class="btn btn-outline-success btn-block" onclick="shareViaWhatsApp()">
+                            <i class="fab fa-whatsapp mb-1"></i><br>
+                            <small>WhatsApp</small>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Analytics Modal -->
+<div class="modal fade" id="analyticsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Knowledge Base Analytics</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-4">
+                    <div class="col-md-3 text-center">
+                        <div class="h3 text-primary">{{ knowledge_base.total_documents }}</div>
+                        <small>Documents</small>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <div class="h3 text-success">{{ knowledge_base.total_views }}</div>
+                        <small>Views</small>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <div class="h3 text-info">{{ knowledge_base.total_downloads }}</div>
+                        <small>Downloads</small>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <div class="h3 text-warning">{{ knowledge_base.contributors_count }}</div>
+                        <small>Contributors</small>
+                    </div>
+                </div>
+                
+                <canvas id="analyticsChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/knowledge.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+$(document).ready(function() {
+    initializeNavigation();
+    initializeSearch();
+    initializeTOC();
+    bindScrollEvents();
+});
+
+function initializeNavigation() {
+    $('.kb-nav-item').on('click', function(e) {
+        e.preventDefault();
+        
+        const section = $(this).data('section');
+        const target = $('#' + section);
+        
+        if (target.length) {
+            // Update active nav item
+            $('.kb-nav-item').removeClass('active');
+            $(this).addClass('active');
+            
+            // Smooth scroll to section
+            $('html, body').animate({
+                scrollTop: target.offset().top - 100
+            }, 500);
+        }
+    });
+}
+
+function initializeSearch() {
+    $('.search-input').on('keypress', function(e) {
+        if (e.which === 13) {
+            $(this).closest('form').submit();
+        }
+    });
+    
+    // Auto-focus search input
+    $('.search-input').focus();
+}
+
+function initializeTOC() {
+    $('#toggle-toc').on('click', function() {
+        $('#floating-toc').toggle();
+        $(this).find('i').toggleClass('fa-list fa-times');
+    });
+    
+    $('.toc-item').on('click', function(e) {
+        e.preventDefault();
+        
+        const section = $(this).data('section');
+        const target = $('#' + section);
+        
+        if (target.length) {
+            // Update active toc item
+            $('.toc-item').removeClass('active');
+            $(this).addClass('active');
+            
+            // Update nav item
+            $('.kb-nav-item').removeClass('active');
+            $(`.kb-nav-item[data-section="${section}"]`).addClass('active');
+            
+            // Smooth scroll
+            $('html, body').animate({
+                scrollTop: target.offset().top - 100
+            }, 500);
+        }
+    });
+}
+
+function bindScrollEvents() {
+    let ticking = false;
+    
+    $(window).on('scroll', function() {
+        if (!ticking) {
+            requestAnimationFrame(updateActiveSection);
+            ticking = true;
+        }
+    });
+}
+
+function updateActiveSection() {
+    const scrollTop = $(window).scrollTop();
+    const sections = $('.kb-section');
+    
+    let activeSection = 'overview';
+    
+    sections.each(function() {
+        const sectionTop = $(this).offset().top - 150;
+        const sectionBottom = sectionTop + $(this).outerHeight();
+        
+        if (scrollTop >= sectionTop && scrollTop < sectionBottom) {
+            activeSection = $(this).attr('id');
+        }
+    });
+    
+    // Update navigation
+    $('.kb-nav-item').removeClass('active');
+    $(`.kb-nav-item[data-section="${activeSection}"]`).addClass('active');
+    
+    $('.toc-item').removeClass('active');
+    $(`.toc-item[data-section="${activeSection}"]`).addClass('active');
+    
+    ticking = false;
+}
+
+// Share functions
+function copyToClipboard(element) {
+    $(element).select();
+    document.execCommand('copy');
+    
+    if (typeof KnowledgeSystem !== 'undefined') {
+        KnowledgeSystem.showNotification('Link copied to clipboard!', 'success');
+    }
+}
+
+function shareViaEmail() {
+    const url = $('#share-url').val();
+    const subject = encodeURIComponent('Check out this Knowledge Base');
+    const body = encodeURIComponent(`I thought you might find this knowledge base interesting: ${url}`);
+    window.open(`mailto:?subject=${subject}&body=${body}`);
+}
+
+function shareViaTwitter() {
+    const url = $('#share-url').val();
+    const text = encodeURIComponent('Check out this knowledge base!');
+    window.open(`https://twitter.com/intent/tweet?text=${text}&url=${encodeURIComponent(url)}`);
+}
+
+function shareViaWhatsApp() {
+    const url = $('#share-url').val();
+    const text = encodeURIComponent(`Check out this knowledge base: ${url}`);
+    window.open(`https://wa.me/?text=${text}`);
+}
+
+// Analytics chart
+$('#analyticsModal').on('shown.bs.modal', function() {
+    const ctx = document.getElementById('analyticsChart').getContext('2d');
+    
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+            datasets: [{
+                label: 'Document Views',
+                data: [10, 20, 15, 30, 25, 40],
+                borderColor: '#667eea',
+                backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+});
+
+// Keyboard shortcuts
+$(document).on('keydown', function(e) {
+    // Ctrl/Cmd + K to focus search
+    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        $('.search-input').focus();
+    }
+    
+    // Ctrl/Cmd + T to toggle TOC
+    if ((e.ctrlKey || e.metaKey) && e.key === 't') {
+        e.preventDefault();
+        $('#toggle-toc').click();
+    }
+});
+
+// Show TOC on larger screens
+if ($(window).width() > 1200) {
+    $('#floating-toc').show();
+}
+
+// Set category and activity icon colors
+document.querySelectorAll('.category-icon-kb').forEach(function(icon) {
+    const color = icon.getAttribute('data-color');
+    if (color) {
+        icon.style.background = color;
+    }
+});
+
+document.querySelectorAll('.activity-icon-kb').forEach(function(icon) {
+    const color = icon.getAttribute('data-color');
+    if (color) {
+        icon.style.background = color;
+    }
+});
+</script>
+{% endblock %}

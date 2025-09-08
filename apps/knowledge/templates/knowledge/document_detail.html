@@ -1,0 +1,587 @@
+{% extends 'knowledge/base_knowledge.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ document.title }} - Knowledge Base{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/knowledge.css' %}">
+<style>
+.document-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2rem 0;
+    margin-bottom: 2rem;
+}
+
+.document-actions {
+    position: sticky;
+    top: 2rem;
+    z-index: 100;
+}
+
+.document-content {
+    line-height: 1.8;
+    font-size: 1.1rem;
+}
+
+.document-toc {
+    background: #f8f9fa;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.document-toc ul {
+    list-style: none;
+    padding-left: 1rem;
+}
+
+.document-toc a {
+    color: #495057;
+    text-decoration: none;
+    padding: 0.25rem 0;
+    display: block;
+    border-left: 3px solid transparent;
+    padding-left: 0.75rem;
+    transition: all 0.2s;
+}
+
+.document-toc a:hover,
+.document-toc a.active {
+    color: #007bff;
+    border-left-color: #007bff;
+    background-color: rgba(0, 123, 255, 0.1);
+}
+
+.version-history {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.similar-documents {
+    background: #f8f9fa;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+}
+
+.ai-insights {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+    content: ">";
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'knowledge:dashboard' %}">Knowledge Base</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'knowledge:document_list' %}">Documents</a></li>
+            {% if document.category %}
+            <li class="breadcrumb-item"><a href="{% url 'knowledge:document_list' %}?category={{ document.category.id }}">{{ document.category.name }}</a></li>
+            {% endif %}
+            <li class="breadcrumb-item active">{{ document.title|truncatechars:50 }}</li>
+        </ol>
+    </nav>
+
+    <!-- Document Header -->
+    <div class="document-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="document-icon {{ document.file_type|default:'other' }} mr-3" style="width: 48px; height: 48px;">
+                            <i class="{{ document.get_file_icon }}"></i>
+                        </div>
+                        <div>
+                            <h1 class="mb-1">{{ document.title }}</h1>
+                            <div class="d-flex align-items-center">
+                                <span class="status-badge status-{{ document.status }} mr-2">
+                                    {{ document.get_status_display }}
+                                </span>
+                                {% if document.category %}
+                                <span class="category-badge mr-2 category-badge-detail" data-color="{{ document.category.color }}">
+                                    <i class="{{ document.category.icon }}"></i>
+                                    {{ document.category.name }}
+                                </span>
+                                {% endif %}
+                                {% if document.ai_confidence %}
+                                <span class="ai-confidence ai-confidence-{{ document.get_ai_confidence_level }}">
+                                    <i class="fas fa-robot"></i> AI Confidence: {{ document.ai_confidence }}%
+                                </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if document.description %}
+                    <p class="mb-2 opacity-75">{{ document.description }}</p>
+                    {% endif %}
+                    
+                    <div class="d-flex align-items-center text-sm opacity-75">
+                        <img src="{{ document.created_by.profile.avatar.url|default:'/static/img/default-avatar.png' }}" 
+                             class="rounded-circle mr-2" width="24" height="24" alt="{{ document.created_by.get_full_name }}">
+                        <span class="mr-3">{{ document.created_by.get_full_name|default:document.created_by.username }}</span>
+                        <i class="fas fa-calendar mr-1"></i>
+                        <span class="mr-3">{{ document.created_at|date:"M d, Y" }}</span>
+                        <i class="fas fa-eye mr-1"></i>
+                        <span class="mr-3 view-count">{{ document.view_count }} views</span>
+                        <i class="fas fa-download mr-1"></i>
+                        <span>{{ document.download_count }} downloads</span>
+                    </div>
+                </div>
+                
+                <div class="col-md-4 text-right">
+                    <div class="document-actions">
+                        {% if document.file %}
+                        <a href="{% url 'knowledge:document_download' document.id %}" 
+                           class="btn btn-light btn-lg mb-2 download-document" data-url="{% url 'knowledge:document_download' document.id %}">
+                            <i class="fas fa-download mr-2"></i> Download
+                        </a>
+                        {% endif %}
+                        
+                        <div class="btn-group d-block mb-2">
+                            <button type="button" class="btn btn-outline-light dropdown-toggle" data-toggle="dropdown">
+                                <i class="fas fa-share mr-1"></i> Share
+                            </button>
+                            <div class="dropdown-menu">
+                                <a class="dropdown-item share-document" href="#" data-document-id="{{ document.id }}">
+                                    <i class="fas fa-link mr-2"></i> Copy Link
+                                </a>
+                                <a class="dropdown-item" href="mailto:?subject={{ document.title }}&body=Check out this document: {{ request.build_absolute_uri }}">
+                                    <i class="fas fa-envelope mr-2"></i> Email
+                                </a>
+                                <div class="dropdown-divider"></div>
+                                <a class="dropdown-item" href="#" onclick="window.print()">
+                                    <i class="fas fa-print mr-2"></i> Print
+                                </a>
+                            </div>
+                        </div>
+                        
+                        {% if perms.knowledge.change_knowledgedocument and document.created_by == request.user or request.user.is_staff %}
+                        <div class="btn-group d-block">
+                            <button type="button" class="btn btn-outline-light dropdown-toggle" data-toggle="dropdown">
+                                <i class="fas fa-cog mr-1"></i> Actions
+                            </button>
+                            <div class="dropdown-menu">
+                                <a class="dropdown-item" href="{% url 'knowledge:document_edit' document.id %}">
+                                    <i class="fas fa-edit mr-2"></i> Edit Document
+                                </a>
+                                <a class="dropdown-item trigger-ai-processing" href="#" data-document-id="{{ document.id }}">
+                                    <i class="fas fa-robot mr-2"></i> AI Analysis
+                                </a>
+                                <div class="dropdown-divider"></div>
+                                <a class="dropdown-item text-danger" href="{% url 'knowledge:document_delete' document.id %}">
+                                    <i class="fas fa-trash mr-2"></i> Delete
+                                </a>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Main Content -->
+        <div class="col-lg-8">
+            <!-- AI Insights -->
+            {% if document.ai_extracted_keywords %}
+            <div class="ai-insights">
+                <h5 class="mb-3"><i class="fas fa-robot mr-2"></i> AI Insights</h5>
+                
+                {% if document.description %}
+                <div class="mb-3">
+                    <h6>Description</h6>
+                    <p class="mb-0">{{ document.description }}</p>
+                </div>
+                {% endif %}
+                
+                {% if document.ai_keywords %}
+                <div class="mb-3">
+                    <h6>Key Topics</h6>
+                    <div class="d-flex flex-wrap">
+                        {% for keyword in document.ai_keywords|slice:":10" %}
+                        <span class="badge badge-light mr-1 mb-1">{{ keyword }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% if document.readability_score %}
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Readability Score</h6>
+                        <div class="progress" style="height: 20px;">
+                            <div class="progress-bar readability-bar" role="progressbar" data-score="{{ document.readability_score }}">
+                                {{ document.readability_score }}%
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Document Stats</h6>
+                        <small>
+                            Size: {{ document.file_size|filesizeformat }} | 
+                            Language: {{ document.language|default:"Auto-detected" }}
+                        </small>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- Table of Contents -->
+            {% if document.content and document.content|length > 1000 %}
+            <div class="document-toc">
+                <h5 class="mb-3"><i class="fas fa-list mr-2"></i> Table of Contents</h5>
+                <div id="toc-content">
+                    <!-- TOC will be generated by JavaScript -->
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Document Content -->
+            <div class="document-viewer">
+                <div class="document-content" id="document-content">
+                    {% if document.content %}
+                        {{ document.content|safe }}
+                    {% elif document.file %}
+                        <div class="text-center py-5">
+                            <i class="{{ document.get_file_icon }} fa-3x text-muted mb-3"></i>
+                            <h4>{{ document.title }}</h4>
+                            <p class="text-muted">This document is available for download.</p>
+                            <a href="{% url 'knowledge:document_download' document.id %}" class="btn btn-primary">
+                                <i class="fas fa-download mr-2"></i> Download to View
+                            </a>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
+                            <h4>No Content Available</h4>
+                            <p class="text-muted">This document doesn't have viewable content.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Tags -->
+            {% if document.tags.exists %}
+            <div class="mt-4">
+                <h5 class="mb-3">Tags</h5>
+                <div class="tag-cloud">
+                    {% for tag in document.tags.all %}
+                    <a href="{% url 'knowledge:document_list' %}?tag={{ tag.name }}" class="tag-item">
+                        <i class="fas fa-tag"></i> {{ tag.name }}
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Comments Section -->
+            <div class="comments-section mt-5">
+                <h5 class="mb-4"><i class="fas fa-comments mr-2"></i> Comments ({{ document.comments.count }})</h5>
+                
+                <!-- Add Comment Form -->
+                {% if user.is_authenticated %}
+                <form id="add-comment-form" action="{% url 'knowledge:add_comment' document.id %}" method="post" class="mb-4">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <textarea class="form-control" name="content" rows="3" placeholder="Add your comment..."></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-paper-plane mr-1"></i> Post Comment
+                    </button>
+                </form>
+                {% else %}
+                <div class="alert alert-info">
+                    <a href="{% url 'login' %}">Login</a> to add comments.
+                </div>
+                {% endif %}
+                
+                <!-- Comments List -->
+                <div id="comments-container">
+                    {% for comment in document.comments.all %}
+                    <div class="comment-item" data-comment-id="{{ comment.id }}">
+                        <div class="comment-header">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="d-flex align-items-center">
+                                    <img src="{{ comment.user.profile.avatar.url|default:'/static/img/default-avatar.png' }}" 
+                                         class="rounded-circle mr-2" width="32" height="32" alt="{{ comment.user.get_full_name }}">
+                                    <div>
+                                        <div class="comment-author">{{ comment.user.get_full_name|default:comment.user.username }}</div>
+                                        <div class="comment-date">{{ comment.created_at|timesince }} ago</div>
+                                    </div>
+                                </div>
+                                {% if user.is_authenticated %}
+                                <button class="btn btn-sm btn-outline-secondary reply-comment" data-comment-id="{{ comment.id }}">
+                                    <i class="fas fa-reply mr-1"></i> Reply
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="comment-content">
+                            {{ comment.content|linebreaks }}
+                        </div>
+                        
+                        <!-- Replies -->
+                        {% for reply in comment.replies.all %}
+                        <div class="comment-reply">
+                            <div class="comment-item">
+                                <div class="comment-header">
+                                    <div class="d-flex align-items-center">
+                                        <img src="{{ reply.user.profile.avatar.url|default:'/static/img/default-avatar.png' }}" 
+                                             class="rounded-circle mr-2" width="24" height="24" alt="{{ reply.user.get_full_name }}">
+                                        <div>
+                                            <div class="comment-author">{{ reply.user.get_full_name|default:reply.user.username }}</div>
+                                            <div class="comment-date">{{ reply.created_at|timesince }} ago</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="comment-content">
+                                    {{ reply.content|linebreaks }}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% empty %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-comments fa-2x text-muted mb-2"></i>
+                        <p class="text-muted">No comments yet. Be the first to comment!</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Document Info -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-info-circle mr-2"></i> Document Information</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-2">
+                        <div class="col-sm-6"><strong>File Size:</strong></div>
+                        <div class="col-sm-6">{{ document.file_size|filesizeformat }}</div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-sm-6"><strong>Created:</strong></div>
+                        <div class="col-sm-6">{{ document.created_at|date:"M d, Y H:i" }}</div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-sm-6"><strong>Updated:</strong></div>
+                        <div class="col-sm-6">{{ document.updated_at|date:"M d, Y H:i" }}</div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-sm-6"><strong>Language:</strong></div>
+                        <div class="col-sm-6">{{ document.language|default:"Auto-detected" }}</div>
+                    </div>
+                    {% if document.access_level %}
+                    <div class="row mb-2">
+                        <div class="col-sm-6"><strong>Access Level:</strong></div>
+                        <div class="col-sm-6">
+                            <span class="badge badge-{{ document.access_level|yesno:'success,warning,danger' }}">
+                                {{ document.get_access_level_display }}
+                            </span>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Version History -->
+            {% if document.versions.exists %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-history mr-2"></i> Version History</h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="version-history">
+                        {% for version in document.versions.all|slice:":5" %}
+                        <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
+                            <div>
+                                <div class="font-weight-bold">v{{ version.version_number }}</div>
+                                <small class="text-muted">{{ version.created_at|date:"M d, Y H:i" }}</small>
+                            </div>
+                            <div>
+                                <small class="text-muted">{{ version.created_by.get_full_name|default:version.created_by.username }}</small>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% if document.versions.count > 5 %}
+                    <div class="p-3 text-center">
+                        <a href="{% url 'knowledge:document_detail' document.id %}#versions" class="btn btn-sm btn-outline-primary">
+                            View All Versions ({{ document.versions.count }})
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Similar Documents -->
+            {% if similar_documents %}
+            <div class="similar-documents mb-4">
+                <h6 class="mb-3"><i class="fas fa-lightbulb mr-2"></i> Similar Documents</h6>
+                {% for doc in similar_documents|slice:":5" %}
+                <div class="d-flex align-items-center mb-3">
+                    <div class="document-icon {{ doc.file_type|default:'other' }} mr-2" style="width: 32px; height: 32px; font-size: 0.875rem;">
+                        <i class="{{ doc.get_file_icon }}"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                        <a href="{% url 'knowledge:document_detail' doc.id %}" class="text-decoration-none">
+                            <div class="font-weight-bold text-truncate">{{ doc.title|truncatechars:40 }}</div>
+                        </a>
+                        <small class="text-muted">{{ doc.view_count }} views</small>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Quick Actions -->
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-bolt mr-2"></i> Quick Actions</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid">
+                        <button class="btn btn-sm btn-outline-primary bookmark-document mb-2" data-document-id="{{ document.id }}">
+                            <i class="fas fa-bookmark mr-1"></i> Bookmark
+                        </button>
+                        <a href="{% url 'knowledge:document_list' %}?category={{ document.category.id }}" class="btn btn-sm btn-outline-secondary mb-2">
+                            <i class="fas fa-folder mr-1"></i> Browse Category
+                        </a>
+                        <a href="{% url 'knowledge:document_search' %}?similar={{ document.id }}" class="btn btn-sm btn-outline-info">
+                            <i class="fas fa-search mr-1"></i> Find Similar
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden input for JavaScript -->
+<input type="hidden" id="document-id" value="{{ document.id }}">
+
+<!-- Notifications Container -->
+<div id="notifications-container" class="position-fixed" style="top: 1rem; right: 1rem; z-index: 1050;"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/knowledge.js' %}"></script>
+<script>
+$(document).ready(function() {
+    // Set category badge and progress bar colors
+    const categoryBadge = document.querySelector('.category-badge-detail');
+    if (categoryBadge) {
+        const color = categoryBadge.getAttribute('data-color');
+        if (color) {
+            categoryBadge.style.backgroundColor = color;
+        }
+    }
+    
+    const readabilityBar = document.querySelector('.readability-bar');
+    if (readabilityBar) {
+        const score = readabilityBar.getAttribute('data-score');
+        if (score) {
+            readabilityBar.style.width = score + '%';
+        }
+    }
+    
+    // Generate table of contents
+    generateTableOfContents();
+    
+    // Smooth scrolling for TOC links
+    $(document).on('click', '.toc-link', function(e) {
+        e.preventDefault();
+        const target = $($(this).attr('href'));
+        if (target.length) {
+            $('html, body').animate({
+                scrollTop: target.offset().top - 100
+            }, 500);
+        }
+    });
+    
+    // Update active TOC item on scroll
+    $(window).on('scroll', function() {
+        updateActiveTocItem();
+    });
+    
+    // Copy link functionality
+    $('.share-document').on('click', function(e) {
+        e.preventDefault();
+        const url = window.location.href;
+        navigator.clipboard.writeText(url).then(function() {
+            KnowledgeSystem.showNotification('Link copied to clipboard!', 'success');
+        });
+    });
+});
+
+function generateTableOfContents() {
+    const content = $('#document-content');
+    const tocContainer = $('#toc-content');
+    
+    if (!content.length || !tocContainer.length) return;
+    
+    const headings = content.find('h1, h2, h3, h4, h5, h6');
+    
+    if (headings.length === 0) {
+        tocContainer.parent().hide();
+        return;
+    }
+    
+    let tocHtml = '<ul>';
+    
+    headings.each(function(index) {
+        const heading = $(this);
+        const id = 'heading-' + index;
+        const text = heading.text();
+        const level = parseInt(heading.prop('tagName').substring(1));
+        
+        heading.attr('id', id);
+        
+        tocHtml += `<li><a href="#${id}" class="toc-link" data-level="${level}">${text}</a></li>`;
+    });
+    
+    tocHtml += '</ul>';
+    tocContainer.html(tocHtml);
+}
+
+function updateActiveTocItem() {
+    const scrollTop = $(window).scrollTop();
+    const headings = $('#document-content').find('h1, h2, h3, h4, h5, h6');
+    
+    let activeHeading = null;
+    
+    headings.each(function() {
+        const heading = $(this);
+        if (heading.offset().top - 150 <= scrollTop) {
+            activeHeading = heading;
+        }
+    });
+    
+    $('.toc-link').removeClass('active');
+    
+    if (activeHeading) {
+        const id = activeHeading.attr('id');
+        $(`.toc-link[href="#${id}"]`).addClass('active');
+    }
+}
+</script>
+{% endblock %}

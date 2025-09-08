@@ -1,0 +1,229 @@
+{% extends "budget/base_budget.html" %}
+{% load static %}
+{% load i18n %}
+{% load budget_filters %}
+
+{% block title %}{% trans "Expenses" %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="card-title mb-0">{% trans "Expenses" %}</h4>
+                    <a href="{% url 'budget:expense_create' %}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> {% trans "Add Expense" %}
+                    </a>
+                </div>
+                <!-- Filter Form -->
+                <div class="card-body border-bottom">
+                    <form method="get" id="expense-filter-form">
+                        <!-- Main Filters Row -->
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-3">
+                                <label class="form-label text-muted small mb-1">{% trans "Status" %}</label>
+                                <select name="status" class="form-select form-select-sm">
+                                    <option value="">{% trans "All Status" %}</option>
+                                    <option value="pending" {% if request.GET.status == 'pending' %}selected{% endif %}>{% trans "Pending" %}</option>
+                                    <option value="approved" {% if request.GET.status == 'approved' %}selected{% endif %}>{% trans "Approved" %}</option>
+                                    <option value="rejected" {% if request.GET.status == 'rejected' %}selected{% endif %}>{% trans "Rejected" %}</option>
+                                    <option value="paid" {% if request.GET.status == 'paid' %}selected{% endif %}>{% trans "Paid" %}</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label text-muted small mb-1">{% trans "Budget Plan" %}</label>
+                                <select name="budget_plan" class="form-select form-select-sm">
+                                    <option value="">{% trans "All Budget Plans" %}</option>
+                                    {% for plan in budget_plans %}
+                                    <option value="{{ plan.id }}" {% if request.GET.budget_plan == plan.id|stringformat:'s' %}selected{% endif %}>{{ plan.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label text-muted small mb-1">{% trans "Expense Type" %}</label>
+                                <select name="expense_type" class="form-select form-select-sm">
+                                    <option value="">{% trans "All Types" %}</option>
+                                    {% for type in expense_types %}
+                                    <option value="{{ type.id }}" {% if request.GET.expense_type == type.id|stringformat:'s' %}selected{% endif %}>{{ type.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label text-muted small mb-1">{% trans "Search" %}</label>
+                                <input type="text" name="title" class="form-control form-control-sm" placeholder="{% trans 'Search by title' %}" value="{{ request.GET.title }}">
+                            </div>
+                        </div>
+                        
+                        <!-- Date Range and Amount Filters Row -->
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-3">
+                                <label class="form-label text-muted small mb-1">{% trans "From Date" %}</label>
+                                <input type="date" name="date_after" class="form-control form-control-sm" value="{{ request.GET.date_after }}" title="{% trans 'Filter expenses from this date' %}">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label text-muted small mb-1">{% trans "To Date" %}</label>
+                                <input type="date" name="date_before" class="form-control form-control-sm" value="{{ request.GET.date_before }}" title="{% trans 'Filter expenses until this date' %}">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label text-muted small mb-1">{% trans "Min Amount" %}</label>
+                                <input type="number" name="amount_min" class="form-control form-control-sm" placeholder="0.00" value="{{ request.GET.amount_min }}" step="0.01">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label text-muted small mb-1">{% trans "Max Amount" %}</label>
+                                <input type="number" name="amount_max" class="form-control form-control-sm" placeholder="0.00" value="{{ request.GET.amount_max }}" step="0.01">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label text-muted small mb-1">{% trans "Priority" %}</label>
+                                <select name="priority" class="form-select form-select-sm">
+                                    <option value="">{% trans "All Priorities" %}</option>
+                                    <option value="low" {% if request.GET.priority == 'low' %}selected{% endif %}>{% trans "Low" %}</option>
+                                    <option value="medium" {% if request.GET.priority == 'medium' %}selected{% endif %}>{% trans "Medium" %}</option>
+                                    <option value="high" {% if request.GET.priority == 'high' %}selected{% endif %}>{% trans "High" %}</option>
+                                    <option value="urgent" {% if request.GET.priority == 'urgent' %}selected{% endif %}>{% trans "Urgent" %}</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <!-- Action Buttons Row -->
+                        <div class="row g-3">
+                            <div class="col-12 text-end">
+                                <button type="submit" class="btn btn-primary btn-sm me-2">
+                                    <i class="fas fa-filter"></i> {% trans "Apply Filters" %}
+                                </button>
+                                <a href="{% url 'budget:expense_list' %}" class="btn btn-outline-secondary btn-sm">
+                                    <i class="fas fa-times"></i> {% trans "Clear All" %}
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="card-body p-0">
+
+                    <!-- Expenses Table -->
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>{% trans "Date" %}</th>
+                                    <th>{% trans "Description" %}</th>
+                                    <th>{% trans "Budget Plan" %}</th>
+                                    <th>{% trans "Type" %}</th>
+                                    <th>{% trans "Amount" %}</th>
+                                    <th>{% trans "Requested By" %}</th>
+                                    <th>{% trans "Status" %}</th>
+                                    <th>{% trans "Actions" %}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for expense in expenses %}
+                                <tr>
+                                    <td>{{ expense.expense_date|date:"M d, Y" }}</td>
+                                    <td>
+                                        <a href="{% url 'budget:expense_detail' expense.pk %}" class="text-decoration-none">
+                                            <strong>{{ expense.description|truncatechars:50 }}</strong>
+                                        </a>
+                                        {% if expense.receipt %}
+                                        <br><small class="text-muted">
+                                            <i class="fas fa-paperclip"></i> {% trans "Has receipt" %}
+                                        </small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if expense.budget_plan %}
+                                        <a href="{% url 'budget:plan_detail' expense.budget_plan.pk %}" class="text-decoration-none">
+                                            {{ expense.budget_plan.name }}
+                                        </a>
+                                        {% else %}
+                                        <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ expense.expense_type.name|default:"-" }}</td>
+                                    <td class="text-end">
+                                        <span class="fw-bold">{{ expense.amount|currency_format }}</span>
+                                    </td>
+                                    <td>{{ expense.requested_by.employee_first_name }} {{ expense.requested_by.employee_last_name|default:expense.requested_by.badge_id }}</td>
+                                    <td>
+                                        <span class="badge 
+                                            {% if expense.status == 'approved' %}bg-success
+                                            {% elif expense.status == 'pending' %}bg-warning
+                                            {% elif expense.status == 'rejected' %}bg-danger
+                                            {% elif expense.status == 'paid' %}bg-primary
+                                            {% else %}bg-secondary{% endif %}">
+                                            {{ expense.get_status_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <a href="{% url 'budget:expense_detail' expense.pk %}" class="btn btn-sm btn-outline-primary" title="{% trans 'View Details' %}">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            {% if expense.status == 'pending' %}
+                                            <a href="{% url 'budget:expense_edit' expense.pk %}" class="btn btn-sm btn-outline-secondary" title="{% trans 'Edit' %}">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            {% endif %}
+                                            {% if expense.status == 'pending' and perms.budget.change_expense %}
+                                            <a href="{% url 'budget:expense_approve' expense.pk %}" class="btn btn-sm btn-outline-success" title="{% trans 'Approve' %}">
+                                                <i class="fas fa-check"></i>
+                                            </a>
+                                            <a href="{% url 'budget:expense_reject' expense.pk %}" class="btn btn-sm btn-outline-danger" title="{% trans 'Reject' %}">
+                                                <i class="fas fa-times"></i>
+                                            </a>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="8" class="text-center py-4">
+                                        <div class="text-muted">
+                                            <i class="fas fa-receipt fa-3x mb-3"></i>
+                                            <p>{% trans "No expenses found." %}</p>
+                                            <a href="{% url 'budget:expense_create' %}" class="btn btn-primary">
+                                                {% trans "Create Your First Expense" %}
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    {% if is_paginated %}
+                    <nav aria-label="Expenses pagination">
+                        <ul class="pagination justify-content-center">
+                            {% if page_obj.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page=1{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">&laquo; {% trans "First" %}</a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">{% trans "Previous" %}</a>
+                                </li>
+                            {% endif %}
+
+                            <li class="page-item active">
+                                <span class="page-link">
+                                    {% trans "Page" %} {{ page_obj.number }} {% trans "of" %} {{ page_obj.paginator.num_pages }}
+                                </span>
+                            </li>
+
+                            {% if page_obj.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">{% trans "Next" %}</a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">{% trans "Last" %} &raquo;</a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

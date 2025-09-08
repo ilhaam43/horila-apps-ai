@@ -1,0 +1,269 @@
+groups:
+  - name: horilla.rules
+    rules:
+      # High-level service availability
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "Service {{ $labels.job }} on {{ $labels.instance }} has been down for more than 1 minute."
+
+      - alert: HighErrorRate
+        expr: rate(django_http_requests_total{status=~"5.."}[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value }} errors per second on {{ $labels.instance }}"
+
+  - name: database.rules
+    rules:
+      # Database connectivity
+      - alert: DatabaseDown
+        expr: up{job="postgresql"} == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL database is down"
+          description: "PostgreSQL database on {{ $labels.instance }} is not responding."
+
+      # Database connections
+      - alert: DatabaseHighConnections
+        expr: pg_stat_database_numbackends / pg_settings_max_connections * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High database connection usage"
+          description: "Database connection usage is {{ $value }}% on {{ $labels.instance }}"
+
+      # Database replication lag
+      - alert: DatabaseReplicationLag
+        expr: pg_replication_lag_seconds > 60
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Database replication lag detected"
+          description: "Replication lag is {{ $value }} seconds on {{ $labels.instance }}"
+
+  - name: redis.rules
+    rules:
+      # Redis connectivity
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis is down"
+          description: "Redis on {{ $labels.instance }} is not responding."
+
+      # Redis memory usage
+      - alert: RedisHighMemoryUsage
+        expr: redis_memory_used_bytes / redis_memory_max_bytes * 100 > 90
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis high memory usage"
+          description: "Redis memory usage is {{ $value }}% on {{ $labels.instance }}"
+
+      # Redis connection count
+      - alert: RedisHighConnections
+        expr: redis_connected_clients > 1000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis high connection count"
+          description: "Redis has {{ $value }} connected clients on {{ $labels.instance }}"
+
+  - name: system.rules
+    rules:
+      # CPU usage
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage detected"
+          description: "CPU usage is {{ $value }}% on {{ $labels.instance }}"
+
+      # Memory usage
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage detected"
+          description: "Memory usage is {{ $value }}% on {{ $labels.instance }}"
+
+      # Disk space
+      - alert: LowDiskSpace
+        expr: (1 - (node_filesystem_avail_bytes / node_filesystem_size_bytes)) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low disk space detected"
+          description: "Disk usage is {{ $value }}% on {{ $labels.instance }} for filesystem {{ $labels.mountpoint }}"
+
+      # Critical disk space
+      - alert: CriticalDiskSpace
+        expr: (1 - (node_filesystem_avail_bytes / node_filesystem_size_bytes)) * 100 > 95
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical disk space detected"
+          description: "Disk usage is {{ $value }}% on {{ $labels.instance }} for filesystem {{ $labels.mountpoint }}"
+
+  - name: application.rules
+    rules:
+      # Django application response time
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(django_http_request_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High response time detected"
+          description: "95th percentile response time is {{ $value }} seconds on {{ $labels.instance }}"
+
+      # Celery queue length
+      - alert: HighCeleryQueueLength
+        expr: celery_queue_length > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High Celery queue length"
+          description: "Celery queue {{ $labels.queue }} has {{ $value }} pending tasks"
+
+      # Celery worker down
+      - alert: CeleryWorkerDown
+        expr: celery_workers_active == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "No active Celery workers"
+          description: "No Celery workers are active for processing tasks"
+
+      # Failed Celery tasks
+      - alert: HighCeleryFailureRate
+        expr: rate(celery_tasks_failed_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High Celery task failure rate"
+          description: "Celery task failure rate is {{ $value }} failures per second"
+
+  - name: external_services.rules
+    rules:
+      # Elasticsearch health
+      - alert: ElasticsearchDown
+        expr: up{job="elasticsearch"} == 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Elasticsearch is down"
+          description: "Elasticsearch on {{ $labels.instance }} is not responding."
+
+      # Ollama health
+      - alert: OllamaDown
+        expr: up{job="ollama"} == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Ollama service is down"
+          description: "Ollama service on {{ $labels.instance }} is not responding."
+
+      # N8N health
+      - alert: N8NDown
+        expr: up{job="n8n"} == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "N8N service is down"
+          description: "N8N service on {{ $labels.instance }} is not responding."
+
+      # ChromaDB health
+      - alert: ChromaDBDown
+        expr: up{job="chromadb"} == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "ChromaDB service is down"
+          description: "ChromaDB service on {{ $labels.instance }} is not responding."
+
+  - name: load_balancer.rules
+    rules:
+      # HAProxy backend down
+      - alert: HAProxyBackendDown
+        expr: haproxy_backend_up == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "HAProxy backend is down"
+          description: "HAProxy backend {{ $labels.backend }} server {{ $labels.server }} is down"
+
+      # HAProxy high response time
+      - alert: HAProxyHighResponseTime
+        expr: haproxy_backend_response_time_average_seconds > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "HAProxy high response time"
+          description: "HAProxy backend {{ $labels.backend }} has high response time: {{ $value }} seconds"
+
+      # HAProxy high error rate
+      - alert: HAProxyHighErrorRate
+        expr: rate(haproxy_backend_http_responses_total{code=~"5.."}[5m]) / rate(haproxy_backend_http_responses_total[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "HAProxy high error rate"
+          description: "HAProxy backend {{ $labels.backend }} has high error rate: {{ $value }}%"
+
+  - name: sla.rules
+    rules:
+      # SLA monitoring - 99.99% uptime target
+      - alert: SLABreach
+        expr: |
+          (
+            sum(rate(django_http_requests_total{status!~"5.."}[5m])) /
+            sum(rate(django_http_requests_total[5m]))
+          ) < 0.9999
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "SLA breach detected"
+          description: "Service availability is {{ $value | humanizePercentage }} which is below 99.99% SLA target"
+
+      # Response time SLA
+      - alert: ResponseTimeSLABreach
+        expr: histogram_quantile(0.99, rate(django_http_request_duration_seconds_bucket[5m])) > 5
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Response time SLA breach"
+          description: "99th percentile response time is {{ $value }} seconds, exceeding 5 second SLA"

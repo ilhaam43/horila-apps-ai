@@ -1,0 +1,307 @@
+{% extends 'knowledge/base_knowledge.html' %}
+{% load static %}
+
+{% block title %}
+{% if object %}
+Edit Category - {{ object.name }}
+{% else %}
+Create Category
+{% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.category-form {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    padding: 2rem;
+    margin-top: 2rem;
+}
+
+.form-header {
+    border-bottom: 2px solid #f8f9fa;
+    padding-bottom: 1rem;
+    margin-bottom: 2rem;
+}
+
+.form-header h2 {
+    color: #2c3e50;
+    font-weight: 600;
+    margin: 0;
+}
+
+.form-group label {
+    font-weight: 600;
+    color: #34495e;
+    margin-bottom: 0.5rem;
+}
+
+.form-control {
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    padding: 0.75rem;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    padding: 0.75rem 2rem;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.btn-secondary {
+    background: #6c757d;
+    border: none;
+    padding: 0.75rem 2rem;
+    border-radius: 8px;
+    font-weight: 600;
+}
+
+.color-picker {
+    width: 50px;
+    height: 40px;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.icon-preview {
+    display: inline-block;
+    width: 40px;
+    height: 40px;
+    background: #667eea;
+    color: white;
+    border-radius: 8px;
+    text-align: center;
+    line-height: 40px;
+    margin-left: 10px;
+}
+
+.form-actions {
+    border-top: 2px solid #f8f9fa;
+    padding-top: 2rem;
+    margin-top: 2rem;
+    text-align: right;
+}
+
+.breadcrumb {
+    background: transparent;
+    padding: 0;
+    margin-bottom: 1rem;
+}
+
+.breadcrumb-item a {
+    color: #667eea;
+    text-decoration: none;
+}
+
+.breadcrumb-item.active {
+    color: #6c757d;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'knowledge:dashboard' %}">Knowledge Base</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'knowledge:category_list' %}">Categories</a></li>
+            {% if object %}
+            <li class="breadcrumb-item"><a href="{% url 'knowledge:category_detail' object.pk %}">{{ object.name }}</a></li>
+            <li class="breadcrumb-item active">Edit</li>
+            {% else %}
+            <li class="breadcrumb-item active">Create Category</li>
+            {% endif %}
+        </ol>
+    </nav>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="category-form">
+                <div class="form-header">
+                    <h2>
+                        <i class="fas fa-folder mr-2"></i>
+                        {% if object %}
+                        Edit Category
+                        {% else %}
+                        Create New Category
+                        {% endif %}
+                    </h2>
+                </div>
+
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {{ form.non_field_errors }}
+                    </div>
+                    {% endif %}
+
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="form-group">
+                                <label for="{{ form.name.id_for_label }}">Category Name *</label>
+                                {{ form.name }}
+                                {% if form.name.errors %}
+                                <div class="text-danger mt-1">
+                                    {{ form.name.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="{{ form.color.id_for_label }}">Color</label>
+                                <div class="d-flex align-items-center">
+                                    {{ form.color }}
+                                    <div class="icon-preview ml-2" id="color-preview">
+                                        <i class="fas fa-folder"></i>
+                                    </div>
+                                </div>
+                                {% if form.color.errors %}
+                                <div class="text-danger mt-1">
+                                    {{ form.color.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="{{ form.description.id_for_label }}">Description</label>
+                        {{ form.description }}
+                        {% if form.description.errors %}
+                        <div class="text-danger mt-1">
+                            {{ form.description.errors }}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="{{ form.icon.id_for_label }}">Icon Class</label>
+                                {{ form.icon }}
+                                <small class="form-text text-muted">
+                                    Use FontAwesome classes like 'fas fa-folder', 'fas fa-book', etc.
+                                </small>
+                                {% if form.icon.errors %}
+                                <div class="text-danger mt-1">
+                                    {{ form.icon.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="{{ form.parent.id_for_label }}">Parent Category</label>
+                                {{ form.parent }}
+                                {% if form.parent.errors %}
+                                <div class="text-danger mt-1">
+                                    {{ form.parent.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="{{ form.sort_order.id_for_label }}">Sort Order</label>
+                                {{ form.sort_order }}
+                                {% if form.sort_order.errors %}
+                                <div class="text-danger mt-1">
+                                    {{ form.sort_order.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <div class="form-check mt-4">
+                                    {{ form.is_active }}
+                                    <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                                        Active
+                                    </label>
+                                </div>
+                                {% if form.is_active.errors %}
+                                <div class="text-danger mt-1">
+                                    {{ form.is_active.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <a href="{% url 'knowledge:category_list' %}" class="btn btn-secondary mr-2">
+                            <i class="fas fa-times mr-1"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save mr-1"></i>
+                            {% if object %}
+                            Update Category
+                            {% else %}
+                            Create Category
+                            {% endif %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Color picker preview
+    function updateColorPreview() {
+        const color = $('#id_color').val() || '#667eea';
+        $('#color-preview').css('background-color', color);
+    }
+    
+    $('#id_color').on('change input', updateColorPreview);
+    updateColorPreview();
+    
+    // Icon preview
+    function updateIconPreview() {
+        const iconClass = $('#id_icon').val() || 'fas fa-folder';
+        $('#color-preview i').attr('class', iconClass);
+    }
+    
+    $('#id_icon').on('change input', updateIconPreview);
+    updateIconPreview();
+    
+    // Form validation
+    $('form').on('submit', function(e) {
+        const name = $('#id_name').val().trim();
+        if (!name) {
+            e.preventDefault();
+            alert('Category name is required.');
+            $('#id_name').focus();
+            return false;
+        }
+    });
+});
+</script>
+{% endblock %}

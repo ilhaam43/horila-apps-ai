@@ -1,0 +1,474 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}Training Data Management{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/training-data.css' %}" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.css" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1">Training Data Management</h2>
+                    <p class="text-muted mb-0">Kelola data training untuk sistem AI Horilla HR</p>
+                </div>
+                <div>
+                    <a href="{% url 'ai_services:training_data_upload' %}" class="btn btn-primary">
+                        <i class="fas fa-upload me-2"></i>Upload Training Data
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Total Training Data
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.total }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-database fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Completed
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.completed }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Processing
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.processing }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-cog fa-spin fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Recent Uploads (7 days)
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ recent_uploads }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-calendar fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters and Search -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Filter & Search</h6>
+                </div>
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-3">
+                            <label for="{{ filter_form.data_type.id_for_label }}" class="form-label">Tipe Data</label>
+                            {{ filter_form.data_type }}
+                        </div>
+                        <div class="col-md-3">
+                            <label for="{{ filter_form.target_service.id_for_label }}" class="form-label">Target Service</label>
+                            {{ filter_form.target_service }}
+                        </div>
+                        <div class="col-md-3">
+                            <label for="{{ filter_form.processing_status.id_for_label }}" class="form-label">Status</label>
+                            {{ filter_form.processing_status }}
+                        </div>
+                        <div class="col-md-3">
+                            <label for="{{ filter_form.search.id_for_label }}" class="form-label">Pencarian</label>
+                            <div class="input-group">
+                                {{ filter_form.search }}
+                                <button class="btn btn-outline-secondary" type="submit">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary me-2">
+                                <i class="fas fa-filter me-1"></i>Apply Filter
+                            </button>
+                            <a href="{% url 'ai_services:training_data_dashboard' %}" class="btn btn-secondary">
+                                <i class="fas fa-times me-1"></i>Clear Filter
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Training Data Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">Training Data List</h6>
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-cog me-1"></i>Actions
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#" onclick="exportSelected()"><i class="fas fa-download me-2"></i>Export Selected</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="processSelected()"><i class="fas fa-play me-2"></i>Process Selected</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" href="#" onclick="deleteSelected()"><i class="fas fa-trash me-2"></i>Delete Selected</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if page_obj %}
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover" id="trainingDataTable">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th width="30">
+                                            <input type="checkbox" id="selectAll" class="form-check-input">
+                                        </th>
+                                        <th>Judul</th>
+                                        <th>Tipe Data</th>
+                                        <th>Target Service</th>
+                                        <th>Status</th>
+                                        <th>File</th>
+                                        <th>Uploaded By</th>
+                                        <th>Created</th>
+                                        <th width="120">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for training_data in page_obj %}
+                                    <tr>
+                                        <td>
+                                            <input type="checkbox" class="form-check-input row-checkbox" value="{{ training_data.id }}">
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="fw-bold">{{ training_data.title }}</div>
+                                                    <div class="text-muted small">{{ training_data.description|truncatechars:50 }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-info">{{ training_data.get_data_type_display }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-secondary">{{ training_data.get_target_service_display }}</span>
+                                        </td>
+                                        <td>
+                                            {% if training_data.processing_status == 'pending' %}
+                                                <span class="badge bg-warning">{{ training_data.get_processing_status_display }}</span>
+                                            {% elif training_data.processing_status == 'processing' %}
+                                                <span class="badge bg-primary">{{ training_data.get_processing_status_display }}</span>
+                                            {% elif training_data.processing_status == 'completed' %}
+                                                <span class="badge bg-success">{{ training_data.get_processing_status_display }}</span>
+                                            {% elif training_data.processing_status == 'failed' %}
+                                                <span class="badge bg-danger">{{ training_data.get_processing_status_display }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if training_data.file %}
+                                                <div class="d-flex align-items-center">
+                                                    <i class="fas fa-file me-2 text-muted"></i>
+                                                    <div>
+                                                        <div class="small">{{ training_data.file_name|truncatechars:20 }}</div>
+                                                        <div class="text-muted small">{{ training_data.file_size|filesizeformat }}</div>
+                                                    </div>
+                                                </div>
+                                            {% else %}
+                                                <span class="text-muted">No file</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <div class="small">{{ training_data.uploaded_by.get_full_name|default:training_data.uploaded_by.username }}</div>
+                                                    <div class="text-muted small">{{ training_data.uploaded_by.email }}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="small">{{ training_data.created_at|date:"d M Y" }}</div>
+                                            <div class="text-muted small">{{ training_data.created_at|time:"H:i" }}</div>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                <a href="{% url 'ai_services:training_data_detail' training_data.id %}" 
+                                                   class="btn btn-sm btn-outline-primary" title="View Details">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                                <a href="{% url 'ai_services:training_data_edit' training_data.id %}" 
+                                                   class="btn btn-sm btn-outline-secondary" title="Edit">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                                {% if training_data.processing_status == 'pending' or training_data.processing_status == 'failed' %}
+                                                <button class="btn btn-sm btn-outline-success" 
+                                                        data-training-id="{{ training_data.id }}" onclick="processTrainingData(this.dataset.trainingId)" title="Process">
+                                                    <i class="fas fa-play"></i>
+                                                </button>
+                                                {% endif %}
+                                                <button class="btn btn-sm btn-outline-danger" 
+                                                        data-training-id="{{ training_data.id }}" data-training-title="{{ training_data.title|escapejs }}" onclick="deleteTrainingData(this.dataset.trainingId, this.dataset.trainingTitle)" title="Delete">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Pagination -->
+                        {% if page_obj.has_other_pages %}
+                        <nav aria-label="Training data pagination">
+                            <ul class="pagination justify-content-center">
+                                {% if page_obj.has_previous %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">&laquo; First</a>
+                                    </li>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Previous</a>
+                                    </li>
+                                {% endif %}
+
+                                {% for num in page_obj.paginator.page_range %}
+                                    {% if page_obj.number == num %}
+                                        <li class="page-item active">
+                                            <span class="page-link">{{ num }}</span>
+                                        </li>
+                                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a>
+                                        </li>
+                                    {% endif %}
+                                {% endfor %}
+
+                                {% if page_obj.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Next</a>
+                                    </li>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Last &raquo;</a>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                        {% endif %}
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-database fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">Tidak ada training data</h5>
+                            <p class="text-muted">Belum ada training data yang diupload. Mulai dengan mengupload data training pertama Anda.</p>
+                            <a href="{% url 'ai_services:training_data_upload' %}" class="btn btn-primary">
+                                <i class="fas fa-upload me-2"></i>Upload Training Data
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Konfirmasi Hapus</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Apakah Anda yakin ingin menghapus training data <strong id="deleteItemName"></strong>?</p>
+                <p class="text-muted small">Tindakan ini tidak dapat dibatalkan.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                <button type="button" class="btn btn-danger" id="confirmDelete">Hapus</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script>
+// Select all checkbox functionality
+document.getElementById('selectAll').addEventListener('change', function() {
+    const checkboxes = document.querySelectorAll('.row-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = this.checked;
+    });
+});
+
+// Individual checkbox change
+document.querySelectorAll('.row-checkbox').forEach(checkbox => {
+    checkbox.addEventListener('change', function() {
+        const allCheckboxes = document.querySelectorAll('.row-checkbox');
+        const checkedCheckboxes = document.querySelectorAll('.row-checkbox:checked');
+        const selectAllCheckbox = document.getElementById('selectAll');
+        
+        if (checkedCheckboxes.length === allCheckboxes.length) {
+            selectAllCheckbox.checked = true;
+            selectAllCheckbox.indeterminate = false;
+        } else if (checkedCheckboxes.length > 0) {
+            selectAllCheckbox.checked = false;
+            selectAllCheckbox.indeterminate = true;
+        } else {
+            selectAllCheckbox.checked = false;
+            selectAllCheckbox.indeterminate = false;
+        }
+    });
+});
+
+// Delete training data
+function deleteTrainingData(id, title) {
+    document.getElementById('deleteItemName').textContent = title;
+    const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    modal.show();
+    
+    document.getElementById('confirmDelete').addEventListener('click', function() {
+        fetch('/ai-services/training-data/' + id + '/delete/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Terjadi kesalahan saat menghapus data.');
+        });
+        
+        modal.hide();
+    });
+}
+
+// Process training data
+function processTrainingData(id) {
+    if (confirm('Mulai proses training data ini?')) {
+        fetch('/ai-services/training-data/' + id + '/process/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Terjadi kesalahan saat memproses data.');
+        });
+    }
+}
+
+// Bulk actions
+function getSelectedIds() {
+    const selected = [];
+    document.querySelectorAll('.row-checkbox:checked').forEach(checkbox => {
+        selected.push(checkbox.value);
+    });
+    return selected;
+}
+
+function exportSelected() {
+    const selected = getSelectedIds();
+    if (selected.length === 0) {
+        alert('Pilih minimal satu item untuk diekspor.');
+        return;
+    }
+    // TODO: Implement export functionality
+    alert('Export functionality will be implemented.');
+}
+
+function processSelected() {
+    const selected = getSelectedIds();
+    if (selected.length === 0) {
+        alert('Pilih minimal satu item untuk diproses.');
+        return;
+    }
+    if (confirm(`Proses ${selected.length} training data yang dipilih?`)) {
+        // TODO: Implement bulk process functionality
+        alert('Bulk process functionality will be implemented.');
+    }
+}
+
+function deleteSelected() {
+    const selected = getSelectedIds();
+    if (selected.length === 0) {
+        alert('Pilih minimal satu item untuk dihapus.');
+        return;
+    }
+    if (confirm(`Hapus ${selected.length} training data yang dipilih?`)) {
+        // TODO: Implement bulk delete functionality
+        alert('Bulk delete functionality will be implemented.');
+    }
+}
+</script>
+{% endblock %}

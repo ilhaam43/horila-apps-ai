@@ -1,0 +1,468 @@
+{% extends "budget/base_budget.html" %}
+{% load static %}
+{% load i18n %}
+{% load widget_tweaks %}
+
+{% block title %}
+{% if form.instance.pk %}
+    {% trans "Edit Expense" %} - {{ form.instance.description|truncatechars:30 }}
+{% else %}
+    {% trans "Add New Expense" %}
+{% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'plugins/select2/css/select2.min.css' %}" rel="stylesheet">
+<link href="{% static 'plugins/tempusdominus-bootstrap-4/css/tempusdominus-bootstrap-4.min.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2>
+                        {% if form.instance.pk %}
+                            {% trans "Edit Expense" %}
+                        {% else %}
+                            {% trans "Add New Expense" %}
+                        {% endif %}
+                    </h2>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a href="{% url 'budget:dashboard' %}">{% trans "Budget" %}</a></li>
+                            <li class="breadcrumb-item"><a href="{% url 'budget:expense_list' %}">{% trans "Expenses" %}</a></li>
+                            <li class="breadcrumb-item active">
+                                {% if form.instance.pk %}
+                                    {% trans "Edit" %}
+                                {% else %}
+                                    {% trans "Add New" %}
+                                {% endif %}
+                            </li>
+                        </ol>
+                    </nav>
+                </div>
+                <div>
+                    <a href="{% url 'budget:expense_list' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> {% trans "Back to List" %}
+                    </a>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Form -->
+                <div class="col-lg-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                {% if form.instance.pk %}
+                                    {% trans "Edit Expense Information" %}
+                                {% else %}
+                                    {% trans "Expense Information" %}
+                                {% endif %}
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <form method="post" enctype="multipart/form-data" id="expenseForm">
+                                {% csrf_token %}
+                                
+                                <!-- Error Messages -->
+                                {% if form.non_field_errors %}
+                                <div class="alert alert-danger" role="alert">
+                                    {{ form.non_field_errors }}
+                                </div>
+                                {% endif %}
+
+                                <div class="row">
+                                    <!-- Description -->
+                                    <div class="col-md-12 mb-3">
+                                        <label for="{{ form.description.id_for_label }}" class="form-label">
+                                            {{ form.description.label }} <span class="text-danger">*</span>
+                                        </label>
+                                        {{ form.description|add_class:"form-control" }}
+                                        {% if form.description.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.description.errors.0 }}
+                                        </div>
+                                        {% endif %}
+                                        <div class="form-text">{% trans "Brief description of the expense" %}</div>
+                                    </div>
+
+                                    <!-- Amount -->
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ form.amount.id_for_label }}" class="form-label">
+                                            {{ form.amount.label }} <span class="text-danger">*</span>
+                                        </label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">$</span>
+                                            {{ form.amount|add_class:"form-control" }}
+                                        </div>
+                                        {% if form.amount.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.amount.errors.0 }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+
+                                    <!-- Expense Date -->
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ form.expense_date.id_for_label }}" class="form-label">
+                                            {{ form.expense_date.label }} <span class="text-danger">*</span>
+                                        </label>
+                                        <div class="input-group date" id="expenseDatePicker" data-target-input="nearest">
+                                            {{ form.expense_date|add_class:"form-control datetimepicker-input"|attr:"data-target:#expenseDatePicker" }}
+                                            <div class="input-group-append" data-target="#expenseDatePicker" data-toggle="datetimepicker">
+                                                <div class="input-group-text"><i class="fa fa-calendar"></i></div>
+                                            </div>
+                                        </div>
+                                        {% if form.expense_date.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.expense_date.errors.0 }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+
+                                    <!-- Budget Plan -->
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ form.budget_plan.id_for_label }}" class="form-label">
+                                            {{ form.budget_plan.label }}
+                                        </label>
+                                        {{ form.budget_plan|add_class:"form-select select2" }}
+                                        {% if form.budget_plan.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.budget_plan.errors.0 }}
+                                        </div>
+                                        {% endif %}
+                                        <div class="form-text">{% trans "Select the budget plan this expense belongs to" %}</div>
+                                    </div>
+
+                                    <!-- Expense Type -->
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ form.expense_type.id_for_label }}" class="form-label">
+                                            {{ form.expense_type.label }}
+                                        </label>
+                                        {{ form.expense_type|add_class:"form-select select2" }}
+                                        {% if form.expense_type.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.expense_type.errors.0 }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+
+                                    <!-- Status (only for edit) -->
+                                    {% if form.instance.pk and perms.budget.change_expense %}
+                                    <div class="col-md-6 mb-3">
+                                        <label for="{{ form.status.id_for_label }}" class="form-label">
+                                            {{ form.status.label }}
+                                        </label>
+                                        {{ form.status|add_class:"form-select" }}
+                                        {% if form.status.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.status.errors.0 }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    {% endif %}
+
+                                    <!-- Receipt -->
+                                    <div class="col-md-12 mb-3">
+                                        <label for="{{ form.receipt.id_for_label }}" class="form-label">
+                                            {{ form.receipt.label }}
+                                        </label>
+                                        {{ form.receipt|add_class:"form-control" }}
+                                        {% if form.receipt.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.receipt.errors.0 }}
+                                        </div>
+                                        {% endif %}
+                                        <div class="form-text">{% trans "Upload receipt or supporting document (optional)" %}</div>
+                                        
+                                        {% if form.instance.receipt %}
+                                        <div class="mt-2">
+                                            <div class="alert alert-info" role="alert">
+                                                <i class="fas fa-file-alt"></i>
+                                                {% trans "Current file" %}: 
+                                                <a href="{{ form.instance.receipt.url }}" target="_blank" class="alert-link">
+                                                    {{ form.instance.receipt.name }}
+                                                </a>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+
+                                    <!-- Notes -->
+                                    <div class="col-md-12 mb-3">
+                                        <label for="{{ form.notes.id_for_label }}" class="form-label">
+                                            {{ form.notes.label }}
+                                        </label>
+                                        {{ form.notes|add_class:"form-control"|attr:"rows:4" }}
+                                        {% if form.notes.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.notes.errors.0 }}
+                                        </div>
+                                        {% endif %}
+                                        <div class="form-text">{% trans "Additional notes or comments (optional)" %}</div>
+                                    </div>
+                                </div>
+
+                                <!-- Form Actions -->
+                                <div class="row">
+                                    <div class="col-12">
+                                        <hr>
+                                        <div class="d-flex justify-content-between">
+                                            <div>
+                                                {% if form.instance.pk %}
+                                                <button type="submit" class="btn btn-primary">
+                                                    <i class="fas fa-save"></i> {% trans "Update Expense" %}
+                                                </button>
+                                                {% else %}
+                                                <button type="submit" class="btn btn-primary">
+                                                    <i class="fas fa-save"></i> {% trans "Create Expense" %}
+                                                </button>
+                                                {% endif %}
+                                                <button type="submit" name="save_and_add" class="btn btn-success">
+                                                    <i class="fas fa-plus"></i> {% trans "Save & Add Another" %}
+                                                </button>
+                                            </div>
+                                            <div>
+                                                <a href="{% url 'budget:expense_list' %}" class="btn btn-secondary">
+                                                    <i class="fas fa-times"></i> {% trans "Cancel" %}
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Help Panel -->
+                <div class="col-lg-4">
+                    <!-- Budget Information -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">{% trans "Budget Information" %}</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="budgetInfo" class="d-none">
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between">
+                                        <span>{% trans "Allocated" %}</span>
+                                        <strong class="text-primary" id="allocatedAmount">$0.00</strong>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between">
+                                        <span>{% trans "Spent" %}</span>
+                                        <strong class="text-info" id="spentAmount">$0.00</strong>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between">
+                                        <span>{% trans "Remaining" %}</span>
+                                        <strong class="text-success" id="remainingAmount">$0.00</strong>
+                                    </div>
+                                </div>
+                                <div class="progress mb-3">
+                                    <div class="progress-bar" id="budgetProgress" role="progressbar" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            <div id="noBudgetInfo">
+                                <p class="text-muted">{% trans "Select a budget plan to see budget information" %}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tips -->
+                    <div class="card mt-3">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">{% trans "Tips" %}</h5>
+                        </div>
+                        <div class="card-body">
+                            <ul class="list-unstyled mb-0">
+                                <li class="mb-2">
+                                    <i class="fas fa-lightbulb text-warning me-2"></i>
+                                    {% trans "Provide a clear and descriptive title for the expense" %}
+                                </li>
+                                <li class="mb-2">
+                                    <i class="fas fa-receipt text-info me-2"></i>
+                                    {% trans "Upload receipts to support your expense claims" %}
+                                </li>
+                                <li class="mb-2">
+                                    <i class="fas fa-calendar text-success me-2"></i>
+                                    {% trans "Use the actual date when the expense occurred" %}
+                                </li>
+                                <li class="mb-0">
+                                    <i class="fas fa-tags text-primary me-2"></i>
+                                    {% trans "Select appropriate expense type for better categorization" %}
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="card mt-3">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">{% trans "Quick Actions" %}</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-grid gap-2">
+                                <a href="{% url 'budget:expense_list' %}" class="btn btn-outline-secondary btn-sm">
+                                    <i class="fas fa-list"></i> {% trans "View All Expenses" %}
+                                </a>
+                                <a href="{% url 'budget:expense_type_list' %}" class="btn btn-outline-info btn-sm">
+                                    <i class="fas fa-tags"></i> {% trans "Manage Expense Types" %}
+                                </a>
+                                <a href="{% url 'budget:plan_list' %}" class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-chart-pie"></i> {% trans "View Budget Plans" %}
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'plugins/select2/js/select2.full.min.js' %}"></script>
+<script src="{% static 'plugins/moment/moment.min.js' %}"></script>
+<script src="{% static 'plugins/tempusdominus-bootstrap-4/js/tempusdominus-bootstrap-4.min.js' %}"></script>
+
+<script>
+$(document).ready(function() {
+    // Initialize Select2
+    $('.select2').select2({
+        theme: 'bootstrap4',
+        width: '100%'
+    });
+
+    // Initialize Date Picker
+    $('#expenseDatePicker').datetimepicker({
+        format: 'YYYY-MM-DD',
+        maxDate: moment(),
+        icons: {
+            time: 'far fa-clock',
+            date: 'far fa-calendar',
+            up: 'fas fa-arrow-up',
+            down: 'fas fa-arrow-down',
+            previous: 'fas fa-chevron-left',
+            next: 'fas fa-chevron-right',
+            today: 'far fa-calendar-check-o',
+            clear: 'far fa-trash',
+            close: 'far fa-times'
+        }
+    });
+
+    // Budget Plan Change Handler
+    $('#id_budget_plan').on('change', function() {
+        var budgetPlanId = $(this).val();
+        if (budgetPlanId) {
+            // Make AJAX call to get budget information
+            $.ajax({
+                url: '{% url "budget:ajax_budget_info" %}',
+                data: {
+                    'budget_plan_id': budgetPlanId
+                },
+                success: function(data) {
+                    if (data.success) {
+                        $('#allocatedAmount').text('$' + parseFloat(data.allocated_amount).toFixed(2));
+                        $('#spentAmount').text('$' + parseFloat(data.spent_amount).toFixed(2));
+                        $('#remainingAmount').text('$' + parseFloat(data.remaining_amount).toFixed(2));
+                        
+                        var percentage = (data.spent_amount / data.allocated_amount) * 100;
+                        $('#budgetProgress').css('width', percentage + '%');
+                        
+                        if (percentage > 90) {
+                            $('#budgetProgress').removeClass('bg-success bg-warning').addClass('bg-danger');
+                        } else if (percentage > 70) {
+                            $('#budgetProgress').removeClass('bg-success bg-danger').addClass('bg-warning');
+                        } else {
+                            $('#budgetProgress').removeClass('bg-warning bg-danger').addClass('bg-success');
+                        }
+                        
+                        $('#budgetInfo').removeClass('d-none');
+                        $('#noBudgetInfo').addClass('d-none');
+                    }
+                },
+                error: function() {
+                    $('#budgetInfo').addClass('d-none');
+                    $('#noBudgetInfo').removeClass('d-none');
+                }
+            });
+        } else {
+            $('#budgetInfo').addClass('d-none');
+            $('#noBudgetInfo').removeClass('d-none');
+        }
+    });
+
+    // Real-time validation for amount (12-digit support)
+    $('#id_amount').on('input', function() {
+        const value = parseFloat($(this).val());
+        const maxValue = 999999999999.99; // 12 digits max
+        
+        if (value > maxValue) {
+            $(this).addClass('is-invalid');
+            $(this).next('.invalid-feedback').remove();
+            $(this).after('<div class="invalid-feedback">Amount cannot exceed 999,999,999,999.99 (12 digits maximum)</div>');
+        } else if (value <= 0) {
+            $(this).addClass('is-invalid');
+            $(this).next('.invalid-feedback').remove();
+            $(this).after('<div class="invalid-feedback">Amount must be greater than zero</div>');
+        } else {
+            $(this).removeClass('is-invalid');
+            $(this).next('.invalid-feedback').remove();
+        }
+    });
+    
+    // Form Validation
+    $('#expenseForm').on('submit', function(e) {
+        var isValid = true;
+        var amount = parseFloat($('#id_amount').val());
+        var budgetPlanId = $('#id_budget_plan').val();
+        const maxValue = 999999999999.99; // 12 digits max
+        
+        // Validate 12-digit amount
+        if (!amount || amount <= 0) {
+            $('#id_amount').addClass('is-invalid');
+            isValid = false;
+        } else if (amount > maxValue) {
+            $('#id_amount').addClass('is-invalid');
+            isValid = false;
+        } else {
+            $('#id_amount').removeClass('is-invalid');
+        }
+        
+        // Check if amount exceeds remaining budget
+        if (budgetPlanId && amount > 0 && amount <= maxValue) {
+            var remainingText = $('#remainingAmount').text().replace('$', '').replace(',', '');
+            var remaining = parseFloat(remainingText);
+            
+            if (amount > remaining) {
+                if (!confirm('{% trans "This expense will exceed the remaining budget. Do you want to continue?" %}')) {
+                    e.preventDefault();
+                    return false;
+                }
+            }
+        }
+        
+        if (!isValid) {
+            e.preventDefault();
+            return false;
+        }
+        
+        return isValid;
+    });
+
+    // Trigger budget info load if budget plan is already selected
+    if ($('#id_budget_plan').val()) {
+        $('#id_budget_plan').trigger('change');
+    }
+});
+</script>
+{% endblock %}

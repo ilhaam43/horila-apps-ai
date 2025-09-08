@@ -1,0 +1,155 @@
+<nav class="oh-navbar">
+  <div class="oh-wrapper oh-navbar__wrapper">
+    <div class="oh-navbar__toggle-container">
+      <a href="#" class="oh-navbar__toggle-link oh-link__unstyled">
+        <img src="./static/images/ui/menu.svg" width="24" height="24" class="oh-navbar__toggle-menu"
+          loading="lazy" />
+        <span class="oh-navbar__page-title">Knowledge Management</span>
+      </a>
+    </div>
+    <div class="oh-navbar__systray">
+      <!-- Removed Check-In/Check-Out buttons for Knowledge Management -->
+      
+      <div class="oh-navbar__notifications" x-data="notificationManager()" @click="toggleNotification()" >
+        <a href="#" class="oh-navbar__notification-link" aria-label="Toggle Notifications" role="button">
+          <ion-icon name="notifications-outline" class="oh-navbar__icon"></ion-icon>
+        </a>
+        <div class="oh-navbar__notification-tray" x-show="openNotification"
+          @click.outside="openNotification = false">
+          <div class="oh-navbar__notification-head">
+            <span class="oh-navbar__notification-head-title">Notifications</span>
+            <div class="oh-navbar__notification-links" x-show="visible">
+              <a href="#" class="oh-navbar__notification-tray-link mr-2" role="button" x-show="!markRead" @click="markAsRead()">
+                <ion-icon name="checkmark-done-outline" class="mr-1"></ion-icon> Mark as read
+              </a>
+              <a href="#" class="oh-navbar__notification-tray-link oh-navbar__notification-tray-link--danger" role="button" @click="clearNotifications()">
+                <ion-icon name="close-outline" class="mr-1"></ion-icon> Clear
+              </a>
+            </div>
+          </div>
+          <div class="oh-navbar__notification-body" x-show="visible">
+            <ul class="oh-navbar__nofication-list">
+              <li class="oh-navbar__notification-item">
+                <div>
+                  <span class="oh-navbar__notification-dot oh-navbar__notification-dot--green"
+                    :class="markRead ? '': 'oh-navbar__notification-dot--unread'">
+                  </span>
+                </div>
+                <div>
+                  <p class="oh-navbar__notification-text"
+                    :class="markRead ? '': 'oh-navbar__notification-text--unread' ">New document has been added to the knowledge base.</p>
+                  <span class="oh-navbar__notification-date">Jan 03, 2023, at 11:13AM</span>
+                </div>
+                <div>
+                  <div class="oh-navbar__notification-image">
+                    <ion-icon name="document-outline"></ion-icon>
+                  </div>
+                </div>
+              </li>
+              <li class="oh-navbar__notification-item">
+                <div>
+                  <span class="oh-navbar__notification-dot oh-navbar__notification-dot--green"
+                    :class="markRead ? '': 'oh-navbar__notification-dot--unread'"></span>
+                </div>
+                <div>
+                  <p class="oh-navbar__notification-text"
+                    :class="markRead ? '': 'oh-navbar__notification-text--unread' ">Document has been updated by a team member.
+                  </p>
+                  <span class="oh-navbar__notification-date">Jan 01, 2023, at 05:13PM</span>
+                </div>
+                <div>
+                  <div class="oh-navbar__notification-image">
+                    <ion-icon name="create-outline"></ion-icon>
+                  </div>
+                </div>
+              </li>
+              <li class="oh-navbar__notification-item">
+                <div>
+                  <span class="oh-navbar__notification-dot oh-navbar__notification-dot--green"
+                    :class="markRead ? '': 'oh-navbar__notification-dot--unread'"></span>
+                </div>
+                <div>
+                  <p class="oh-navbar__notification-text"
+                    :class="markRead ? '': 'oh-navbar__notification-text--unread' ">AI assistant has generated new insights.</p>
+                  <span class="oh-navbar__notification-date">Dec 31, 2022, at 02:00PM</span>
+                </div>
+                <div>
+                  <div class="oh-navbar__notification-image">
+                    <ion-icon name="bulb-outline"></ion-icon>
+                  </div>
+                </div>
+              </li>
+              <li class="oh-navbar__notification-item">
+                <div>
+                  <span class="oh-navbar__notification-dot oh-navbar__notification-dot--green"
+                    :class="markRead ? '': 'oh-navbar__notification-dot--unread'">
+                  </span>
+                </div>
+                <div>
+                  <p class="oh-navbar__notification-text"
+                    :class="markRead ? '': 'oh-navbar__notification-text--unread' ">New category has been created.
+                  </p>
+                  <span class="oh-navbar__notification-date">Dec 31, 2022, at 10:27AM</span>
+                </div>
+                <div>
+                  <div class="oh-navbar__notification-image">
+                    <ion-icon name="folder-outline"></ion-icon>
+                  </div>
+                </div>
+              </li>
+            </ul>
+          </div>
+          <div class="oh-navbar__notification-footer" x-show="visible">
+            <a href="#" class="oh-navbar__notification-tray-link">View all notifications</a>
+          </div>
+          <div class="oh-navbar__notification-empty" x-show="!visible">
+            <img src="./static/images/ui/happy.svg" alt="All caught up" width="50" height="50" loading="lazy" />
+            <span class="oh-navbar__notification-empty-title">All caught up!</span>
+            <span class="oh-navbar__notification-empty-desc">You have no new notifications at the moment.</span>
+          </div>
+        </div>
+      </div>
+      <div class="oh-navbar__action-icons">
+        <a href="#" class="oh-navbar__action-icons-link">
+          <ion-icon name="settings-outline"  class="oh-navbar__icon"></ion-icon>
+        </a>
+      </div>
+      <div class="oh-dropdown" x-data="{open: false}">
+        <div class="oh-navbar__user-info" @click="open = !open">
+          <div class="oh-navbar__user-photo">
+            <img src="./static/images/upload/userphoto.png" class="oh-navbar__user-image" loading="lazy" />
+          </div>
+          <span class="oh-navbar__user-name">{{ user.get_full_name|default:user.username }}</span>
+        </div>
+        <div class="oh-dropdown__menu oh-dropdown__menu--right" x-show="open" @click.outside="open = false">
+          <ul class="oh-dropdown__items">
+            <li class="oh-dropdown__item">
+              <a href="#" class="oh-dropdown__link">My Profile</a>
+            </li>
+            <li class="oh-dropdown__item">
+              <a href="{% url 'knowledge:dashboard' %}" class="oh-dropdown__link">Knowledge Dashboard</a>
+            </li>
+            <li class="oh-dropdown__item">
+              <a href="{% url 'knowledge:document_list' %}" class="oh-dropdown__link">Documents</a>
+            </li>
+            <li class="oh-dropdown__item">
+              <a href="{% url 'knowledge:category_list' %}" class="oh-dropdown__link">Categories</a>
+            </li>
+            <li class="oh-dropdown__item">
+              <a href="{% url 'knowledge:chatbot' %}" class="oh-dropdown__link">
+                <ion-icon name="chatbubbles-outline" class="mr-2"></ion-icon>AI Chatbot
+              </a>
+            </li>
+          </ul>
+          <hr />
+          <ul class="oh-dropdown__items">
+            <li class="oh-dropdown__item">
+              <a href="#" class="oh-dropdown__link">Log out</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</nav>

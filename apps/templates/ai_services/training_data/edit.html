@@ -1,0 +1,626 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}Edit Training Data - {{ training_data.title }}{% endblock %}
+
+{% block extra_css %}
+<link href="{% static 'css/training-data.css' %}" rel="stylesheet">
+<style>
+.form-section {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+    padding: 25px;
+}
+
+.section-title {
+    color: #495057;
+    font-weight: 600;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.current-file-info {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 5px;
+    padding: 15px;
+    margin-bottom: 15px;
+}
+
+.file-replace-option {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 5px;
+    padding: 15px;
+    margin-top: 15px;
+}
+
+.tag-input-container {
+    position: relative;
+}
+
+.tag-suggestions {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-top: none;
+    border-radius: 0 0 5px 5px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    display: none;
+}
+
+.tag-suggestion {
+    padding: 8px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #f1f3f4;
+}
+
+.tag-suggestion:hover {
+    background: #f8f9fa;
+}
+
+.tag-suggestion:last-child {
+    border-bottom: none;
+}
+
+.current-tags {
+    margin-top: 10px;
+}
+
+.current-tag {
+    display: inline-block;
+    background: #e9ecef;
+    color: #495057;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    margin: 2px;
+    position: relative;
+    padding-right: 25px;
+}
+
+.remove-tag {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    color: #6c757d;
+    font-size: 0.8rem;
+}
+
+.remove-tag:hover {
+    color: #dc3545;
+}
+
+.form-help {
+    font-size: 0.875rem;
+    color: #6c757d;
+    margin-top: 5px;
+}
+
+.required-field {
+    color: #dc3545;
+}
+
+.change-history {
+    background: #f8f9fa;
+    border-left: 4px solid #007bff;
+    padding: 15px;
+    margin-top: 20px;
+}
+
+.change-item {
+    padding: 8px 0;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.change-item:last-child {
+    border-bottom: none;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'ai_services:training_data_dashboard' %}">Training Data</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'ai_services:training_data_detail' training_data.id %}">{{ training_data.title|truncatechars:30 }}</a></li>
+                    <li class="breadcrumb-item active">Edit</li>
+                </ol>
+            </nav>
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-0">Edit Training Data</h2>
+                    <p class="text-muted mb-0">Update training data information and configuration</p>
+                </div>
+                <div>
+                    <a href="{% url 'ai_services:training_data_detail' training_data.id %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-1"></i>Back to Detail
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" id="editTrainingDataForm">
+        {% csrf_token %}
+        
+        <div class="row">
+            <div class="col-lg-8">
+                <!-- Basic Information -->
+                <div class="form-section">
+                    <h4 class="section-title">
+                        <i class="fas fa-info-circle me-2"></i>Basic Information
+                    </h4>
+                    
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label for="{{ form.title.id_for_label }}" class="form-label">
+                                Title <span class="required-field">*</span>
+                            </label>
+                            {{ form.title }}
+                            {% if form.title.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.title.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <div class="form-help">Provide a descriptive title for this training data</div>
+                        </div>
+                        
+                        <div class="col-md-12 mb-3">
+                            <label for="{{ form.description.id_for_label }}" class="form-label">
+                                Description <span class="required-field">*</span>
+                            </label>
+                            {{ form.description }}
+                            {% if form.description.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.description.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <div class="form-help">Explain what this training data contains and its purpose</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- File Management -->
+                <div class="form-section">
+                    <h4 class="section-title">
+                        <i class="fas fa-file me-2"></i>File Management
+                    </h4>
+                    
+                    {% if training_data.file %}
+                    <div class="current-file-info">
+                        <h6 class="mb-3"><i class="fas fa-file-alt me-2"></i>Current File</h6>
+                        <div class="row align-items-center">
+                            <div class="col-md-8">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-file-alt fa-2x text-primary me-3"></i>
+                                    <div>
+                                        <div class="fw-bold">{{ training_data.file_name }}</div>
+                                        <div class="text-muted small">
+                                            {{ training_data.file_type|upper }} • {{ training_data.file_size|filesizeformat }}
+                                        </div>
+                                        <div class="text-muted small">
+                                            Uploaded: {{ training_data.created_at|date:"d M Y, H:i" }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <a href="{% url 'ai_services:training_data_download' training_data.id %}" 
+                                   class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-download me-1"></i>Download
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="file-replace-option">
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="replaceFile">
+                            <label class="form-check-label fw-bold" for="replaceFile">
+                                <i class="fas fa-exchange-alt me-2"></i>Replace current file
+                            </label>
+                        </div>
+                        <div id="fileReplaceSection" style="display: none;">
+                            <label for="{{ form.file.id_for_label }}" class="form-label">New File</label>
+                            {{ form.file }}
+                            {% if form.file.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.file.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <div class="form-help">
+                                <i class="fas fa-exclamation-triangle text-warning me-1"></i>
+                                Replacing the file will trigger reprocessing of the training data
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="mb-3">
+                        <label for="{{ form.file.id_for_label }}" class="form-label">
+                            File <span class="required-field">*</span>
+                        </label>
+                        {{ form.file }}
+                        {% if form.file.errors %}
+                            <div class="text-danger mt-1">
+                                {% for error in form.file.errors %}
+                                    <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <div class="form-help">Upload a file for training data (PDF, TXT, DOCX, CSV, JSON)</div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- AI Configuration -->
+                <div class="form-section">
+                    <h4 class="section-title">
+                        <i class="fas fa-cog me-2"></i>AI Configuration
+                    </h4>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.data_type.id_for_label }}" class="form-label">
+                                Data Type <span class="required-field">*</span>
+                            </label>
+                            {{ form.data_type }}
+                            {% if form.data_type.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.data_type.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <div class="form-help">Select the type of training data</div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.target_service.id_for_label }}" class="form-label">
+                                Target Service <span class="required-field">*</span>
+                            </label>
+                            {{ form.target_service }}
+                            {% if form.target_service.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.target_service.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <div class="form-help">Choose which AI service will use this data</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Additional Information -->
+                <div class="form-section">
+                    <h4 class="section-title">
+                        <i class="fas fa-tags me-2"></i>Additional Information
+                    </h4>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.tags.id_for_label }}" class="form-label">Tags</label>
+                        <div class="tag-input-container">
+                            {{ form.tags }}
+                            <div class="tag-suggestions" id="tagSuggestions"></div>
+                        </div>
+                        {% if form.tags.errors %}
+                            <div class="text-danger mt-1">
+                                {% for error in form.tags.errors %}
+                                    <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <div class="form-help">Add tags separated by commas (e.g., hr-policy, employee-handbook, training)</div>
+                        
+                        {% if training_data.tags %}
+                        <div class="current-tags">
+                            <small class="text-muted">Current tags:</small><br>
+                            <div id="currentTagsContainer">
+                                <!-- Tags will be populated by JavaScript -->
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.notes.id_for_label }}" class="form-label">Notes</label>
+                        {{ form.notes }}
+                        {% if form.notes.errors %}
+                            <div class="text-danger mt-1">
+                                {% for error in form.notes.errors %}
+                                    <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        <div class="form-help">Additional notes or instructions for processing this data</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Sidebar -->
+            <div class="col-lg-4">
+                <!-- Save Actions -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h6 class="mb-0"><i class="fas fa-save me-2"></i>Save Changes</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success" name="action" value="save">
+                                <i class="fas fa-save me-2"></i>Save Changes
+                            </button>
+                            <button type="submit" class="btn btn-primary" name="action" value="save_and_process">
+                                <i class="fas fa-save me-2"></i>Save & Process
+                            </button>
+                            <a href="{% url 'ai_services:training_data_detail' training_data.id %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-2"></i>Cancel
+                            </a>
+                        </div>
+                        
+                        <hr>
+                        
+                        <div class="small text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            <strong>Save & Process:</strong> Will automatically start processing after saving changes.
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Current Status -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-info text-white">
+                        <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Current Status</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="text-center">
+                            {% if training_data.processing_status == 'pending' %}
+                                <i class="fas fa-clock fa-2x text-warning mb-2"></i>
+                                <h6 class="text-warning">Pending</h6>
+                            {% elif training_data.processing_status == 'processing' %}
+                                <i class="fas fa-cog fa-spin fa-2x text-primary mb-2"></i>
+                                <h6 class="text-primary">Processing</h6>
+                            {% elif training_data.processing_status == 'completed' %}
+                                <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
+                                <h6 class="text-success">Completed</h6>
+                            {% elif training_data.processing_status == 'failed' %}
+                                <i class="fas fa-exclamation-triangle fa-2x text-danger mb-2"></i>
+                                <h6 class="text-danger">Failed</h6>
+                            {% endif %}
+                        </div>
+                        
+                        <hr>
+                        
+                        <div class="small">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>Created:</span>
+                                <span>{{ training_data.created_at|date:"d M Y" }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>Updated:</span>
+                                <span>{{ training_data.updated_at|date:"d M Y" }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>By:</span>
+                                <span>{{ training_data.uploaded_by.get_full_name|default:training_data.uploaded_by.username }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Help & Guidelines -->
+                <div class="card shadow-sm">
+                    <div class="card-header bg-secondary text-white">
+                        <h6 class="mb-0"><i class="fas fa-question-circle me-2"></i>Guidelines</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="small">
+                            <h6>File Requirements:</h6>
+                            <ul class="mb-3">
+                                <li>Max size: 50MB</li>
+                                <li>Formats: PDF, TXT, DOCX, CSV, JSON</li>
+                                <li>Clear, readable content</li>
+                            </ul>
+                            
+                            <h6>Best Practices:</h6>
+                            <ul class="mb-0">
+                                <li>Use descriptive titles</li>
+                                <li>Add relevant tags</li>
+                                <li>Include processing notes</li>
+                                <li>Choose appropriate data type</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// File replacement toggle
+document.getElementById('replaceFile').addEventListener('change', function() {
+    const fileSection = document.getElementById('fileReplaceSection');
+    if (this.checked) {
+        fileSection.style.display = 'block';
+    } else {
+        fileSection.style.display = 'none';
+        // Clear file input
+        const fileInput = fileSection.querySelector('input[type="file"]');
+        if (fileInput) {
+            fileInput.value = '';
+        }
+    }
+});
+
+// Tag management
+const tagInput = document.getElementById('{{ form.tags.id_for_label }}');
+const tagSuggestions = document.getElementById('tagSuggestions');
+const currentTagsContainer = document.getElementById('currentTagsContainer');
+
+// Common tags for suggestions
+const commonTags = [
+    'hr-policy', 'employee-handbook', 'training', 'onboarding',
+    'performance', 'benefits', 'compliance', 'procedures',
+    'guidelines', 'documentation', 'knowledge-base', 'faq'
+];
+
+// Initialize current tags
+if (currentTagsContainer && tagInput.value) {
+    displayCurrentTags(tagInput.value.split(',').map(tag => tag.trim()).filter(tag => tag));
+}
+
+// Tag input event listeners
+if (tagInput) {
+    tagInput.addEventListener('input', function() {
+        const value = this.value;
+        const lastComma = value.lastIndexOf(',');
+        const currentTag = lastComma >= 0 ? value.substring(lastComma + 1).trim() : value.trim();
+        
+        if (currentTag.length > 0) {
+            showTagSuggestions(currentTag);
+        } else {
+            hideTagSuggestions();
+        }
+    });
+    
+    tagInput.addEventListener('blur', function() {
+        // Delay hiding to allow clicking on suggestions
+        setTimeout(() => hideTagSuggestions(), 200);
+    });
+    
+    tagInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const suggestions = tagSuggestions.querySelectorAll('.tag-suggestion');
+            if (suggestions.length > 0) {
+                suggestions[0].click();
+            }
+        }
+    });
+}
+
+function showTagSuggestions(query) {
+    const filtered = commonTags.filter(tag => 
+        tag.toLowerCase().includes(query.toLowerCase()) &&
+        !getCurrentTags().includes(tag)
+    );
+    
+    if (filtered.length > 0) {
+        tagSuggestions.innerHTML = filtered.map(tag => 
+            `<div class="tag-suggestion" onclick="addTag('${tag}')">${tag}</div>`
+        ).join('');
+        tagSuggestions.style.display = 'block';
+    } else {
+        hideTagSuggestions();
+    }
+}
+
+function hideTagSuggestions() {
+    tagSuggestions.style.display = 'none';
+}
+
+function addTag(tag) {
+    const currentTags = getCurrentTags();
+    if (!currentTags.includes(tag)) {
+        currentTags.push(tag);
+        updateTagInput(currentTags);
+        displayCurrentTags(currentTags);
+    }
+    hideTagSuggestions();
+}
+
+function removeTag(tag) {
+    const currentTags = getCurrentTags().filter(t => t !== tag);
+    updateTagInput(currentTags);
+    displayCurrentTags(currentTags);
+}
+
+function getCurrentTags() {
+    const value = tagInput.value.trim();
+    return value ? value.split(',').map(tag => tag.trim()).filter(tag => tag) : [];
+}
+
+function updateTagInput(tags) {
+    tagInput.value = tags.join(', ');
+}
+
+function displayCurrentTags(tags) {
+    if (currentTagsContainer) {
+        currentTagsContainer.innerHTML = tags.map(tag => 
+            `<span class="current-tag">
+                ${tag}
+                <span class="remove-tag" onclick="removeTag('${tag}')">&times;</span>
+            </span>`
+        ).join('');
+    }
+}
+
+// Form validation
+document.getElementById('editTrainingDataForm').addEventListener('submit', function(e) {
+    const title = document.getElementById('{{ form.title.id_for_label }}').value.trim();
+    const description = document.getElementById('{{ form.description.id_for_label }}').value.trim();
+    
+    if (!title) {
+        e.preventDefault();
+        alert('Please enter a title for the training data.');
+        return;
+    }
+    
+    if (!description) {
+        e.preventDefault();
+        alert('Please enter a description for the training data.');
+        return;
+    }
+    
+    // Show loading state
+    const submitButtons = this.querySelectorAll('button[type="submit"]');
+    submitButtons.forEach(btn => {
+        btn.disabled = true;
+        const icon = btn.querySelector('i');
+        if (icon) {
+            icon.className = 'fas fa-spinner fa-spin me-2';
+        }
+    });
+});
+
+// Auto-save draft (optional)
+let autoSaveTimeout;
+const formInputs = document.querySelectorAll('#editTrainingDataForm input, #editTrainingDataForm textarea, #editTrainingDataForm select');
+
+formInputs.forEach(input => {
+    input.addEventListener('input', function() {
+        clearTimeout(autoSaveTimeout);
+        autoSaveTimeout = setTimeout(saveDraft, 2000); // Save after 2 seconds of inactivity
+    });
+});
+
+function saveDraft() {
+    // TODO: Implement auto-save functionality
+    console.log('Auto-saving draft...');
+}
+</script>
+{% endblock %}

@@ -1,0 +1,197 @@
+{
+  "workflows": {
+    "resume_screening": {
+      "id": "resume-screening-workflow",
+      "name": "Resume Screening Automation",
+      "description": "Automated resume screening and candidate evaluation",
+      "webhook_url": "/webhook/resume-screening",
+      "triggers": [
+        "candidate_created",
+        "resume_uploaded"
+      ],
+      "actions": [
+        {
+          "type": "ai_analysis",
+          "service": "ollama",
+          "model": "llama2",
+          "prompt": "Analyze this resume for job fit"
+        },
+        {
+          "type": "score_calculation",
+          "criteria": ["skills_match", "experience", "education"]
+        },
+        {
+          "type": "notification",
+          "recipients": ["hr_manager", "hiring_manager"],
+          "template": "resume_analysis_complete"
+        }
+      ]
+    },
+    "interview_scheduling": {
+      "id": "interview-scheduling-workflow",
+      "name": "Interview Scheduling Automation",
+      "description": "Automated interview scheduling and coordination",
+      "webhook_url": "/webhook/interview-scheduling",
+      "triggers": [
+        "candidate_stage_changed",
+        "interview_requested"
+      ],
+      "actions": [
+        {
+          "type": "calendar_check",
+          "service": "google_calendar",
+          "participants": ["interviewer", "candidate"]
+        },
+        {
+          "type": "email_invitation",
+          "template": "interview_invitation",
+          "include_calendar_event": true
+        },
+        {
+          "type": "reminder_schedule",
+          "intervals": ["24h", "2h", "30m"]
+        }
+      ]
+    },
+    "candidate_notification": {
+      "id": "candidate-notification-workflow",
+      "name": "Candidate Communication Automation",
+      "description": "Automated candidate notifications and updates",
+      "webhook_url": "/webhook/candidate-notification",
+      "triggers": [
+        "application_received",
+        "stage_progression",
+        "interview_scheduled",
+        "decision_made"
+      ],
+      "actions": [
+        {
+          "type": "email_notification",
+          "templates": {
+            "application_received": "application_acknowledgment",
+            "stage_progression": "stage_update",
+            "interview_scheduled": "interview_confirmation",
+            "decision_made": "hiring_decision"
+          }
+        },
+        {
+          "type": "sms_notification",
+          "conditions": ["urgent", "interview_reminder"]
+        },
+        {
+          "type": "status_update",
+          "update_candidate_record": true
+        }
+      ]
+    },
+    "hiring_decision": {
+      "id": "hiring-decision-workflow",
+      "name": "Hiring Decision Automation",
+      "description": "Automated hiring decision processing and documentation",
+      "webhook_url": "/webhook/hiring-decision",
+      "triggers": [
+        "interview_completed",
+        "evaluation_submitted"
+      ],
+      "actions": [
+        {
+          "type": "score_aggregation",
+          "sources": ["resume_analysis", "interview_scores", "reference_checks"]
+        },
+        {
+          "type": "decision_matrix",
+          "criteria": {
+            "technical_skills": 0.4,
+            "cultural_fit": 0.3,
+            "experience": 0.2,
+            "communication": 0.1
+          }
+        },
+        {
+          "type": "approval_workflow",
+          "approvers": ["hiring_manager", "hr_director"],
+          "threshold_score": 75
+        },
+        {
+          "type": "offer_generation",
+          "template": "job_offer_letter",
+          "conditions": ["approved", "budget_available"]
+        }
+      ]
+    },
+    "onboarding_trigger": {
+      "id": "onboarding-trigger-workflow",
+      "name": "Onboarding Initiation Automation",
+      "description": "Automated onboarding process initiation for hired candidates",
+      "webhook_url": "/webhook/onboarding-trigger",
+      "triggers": [
+        "offer_accepted",
+        "contract_signed"
+      ],
+      "actions": [
+        {
+          "type": "employee_record_creation",
+          "system": "hrms",
+          "data_mapping": {
+            "candidate_id": "employee_id",
+            "personal_info": "employee_profile",
+            "job_details": "position_assignment"
+          }
+        },
+        {
+          "type": "onboarding_checklist",
+          "tasks": [
+            "equipment_assignment",
+            "access_provisioning",
+            "documentation_collection",
+            "orientation_scheduling"
+          ]
+        },
+        {
+          "type": "welcome_package",
+          "components": [
+            "welcome_email",
+            "company_handbook",
+            "first_day_instructions"
+          ]
+        },
+        {
+          "type": "system_integration",
+          "systems": ["payroll", "attendance", "asset_management"]
+        }
+      ]
+    }
+  },
+  "configuration": {
+    "base_url": "http://localhost:5678",
+    "auth_method": "basic",
+    "retry_attempts": 3,
+    "timeout": 30,
+    "webhook_security": {
+      "enabled": true,
+      "secret_key": "recruitment_webhook_secret",
+      "signature_header": "X-N8N-Signature"
+    },
+    "rate_limiting": {
+      "enabled": true,
+      "requests_per_minute": 60,
+      "burst_limit": 10
+    }
+  },
+  "templates": {
+    "email_templates": {
+      "application_acknowledgment": {
+        "subject": "Application Received - {{job_title}} Position",
+        "body": "Dear {{candidate_name}},\n\nThank you for your interest in the {{job_title}} position at {{company_name}}. We have received your application and will review it shortly.\n\nBest regards,\n{{hr_team}}"
+      },
+      "interview_invitation": {
+        "subject": "Interview Invitation - {{job_title}} Position",
+        "body": "Dear {{candidate_name}},\n\nWe are pleased to invite you for an interview for the {{job_title}} position.\n\nInterview Details:\nDate: {{interview_date}}\nTime: {{interview_time}}\nLocation: {{interview_location}}\nInterviewer: {{interviewer_name}}\n\nPlease confirm your attendance.\n\nBest regards,\n{{hr_team}}"
+      },
+      "hiring_decision": {
+        "subject": "Update on Your Application - {{job_title}} Position",
+        "body": "Dear {{candidate_name}},\n\nThank you for your interest in the {{job_title}} position and for taking the time to interview with us.\n\n{{decision_message}}\n\nBest regards,\n{{hr_team}}"
+      }
+    }
+  }
+}

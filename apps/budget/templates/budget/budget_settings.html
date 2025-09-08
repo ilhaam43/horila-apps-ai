@@ -1,0 +1,179 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <!-- Page Header -->
+            <div class="page-header d-print-none">
+                <div class="container-xl">
+                    <div class="row g-2 align-items-center">
+                        <div class="col">
+                            <div class="page-pretitle">
+                                {% trans "Budget Management" %}
+                            </div>
+                            <h2 class="page-title">
+                                <i class="ti ti-settings me-2"></i>
+                                {{ title }}
+                            </h2>
+                        </div>
+                        <div class="col-auto ms-auto d-print-none">
+                            <div class="btn-list">
+                                <a href="{% url 'budget:dashboard' %}" class="btn btn-outline-primary">
+                                    <i class="ti ti-arrow-left me-1"></i>
+                                    {% trans "Back to Dashboard" %}
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Form -->
+            <div class="page-body">
+                <div class="container-xl">
+                    <div class="row justify-content-center">
+                        <div class="col-md-8 col-lg-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">
+                                        <i class="ti ti-currency-dollar me-2"></i>
+                                        {% trans "Currency Configuration" %}
+                                    </h3>
+                                </div>
+                                <div class="card-body">
+                                    <form method="post" class="needs-validation" novalidate>
+                                        {% csrf_token %}
+                                        
+                                        <!-- Currency Symbol -->
+                                        <div class="mb-3">
+                                            <label class="form-label required" for="{{ form.currency_symbol.id_for_label }}">
+                                                {% trans "Currency Symbol" %}
+                                            </label>
+                                            {{ form.currency_symbol }}
+                                            {% if form.currency_symbol.errors %}
+                                                <div class="invalid-feedback d-block">
+                                                    {{ form.currency_symbol.errors.0 }}
+                                                </div>
+                                            {% endif %}
+                                            <small class="form-hint">
+                                                {% trans "Enter the currency symbol (e.g., $, €, £, ¥, ₹)" %}
+                                            </small>
+                                        </div>
+
+                                        <!-- Position -->
+                                        <div class="mb-3">
+                                            <label class="form-label required" for="{{ form.position.id_for_label }}">
+                                                {% trans "Symbol Position" %}
+                                            </label>
+                                            {{ form.position }}
+                                            {% if form.position.errors %}
+                                                <div class="invalid-feedback d-block">
+                                                    {{ form.position.errors.0 }}
+                                                </div>
+                                            {% endif %}
+                                            <small class="form-hint">
+                                                {% trans "Choose whether to display the currency symbol before or after the amount" %}
+                                            </small>
+                                        </div>
+
+                                        <!-- Preview -->
+                                        <div class="mb-4">
+                                            <label class="form-label">{% trans "Preview" %}</label>
+                                            <div class="card bg-light">
+                                                <div class="card-body py-2">
+                                                    <div class="d-flex align-items-center">
+                                                        <i class="ti ti-eye me-2 text-muted"></i>
+                                                        <span class="fw-bold" id="currency-preview">
+                                                            {% if budget_settings.position == 'prefix' %}
+                                                                {{ budget_settings.currency_symbol }}1,234.56
+                                                            {% else %}
+                                                                1,234.56{{ budget_settings.currency_symbol }}
+                                                            {% endif %}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Submit Button -->
+                                        <div class="d-flex justify-content-end">
+                                            <button type="submit" class="btn btn-primary">
+                                                <i class="ti ti-device-floppy me-1"></i>
+                                                {% trans "Save Settings" %}
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <!-- Information Card -->
+                            <div class="card mt-4">
+                                <div class="card-header">
+                                    <h3 class="card-title">
+                                        <i class="ti ti-info-circle me-2"></i>
+                                        {% trans "Information" %}
+                                    </h3>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-12">
+                                            <h4 class="mb-3">{% trans "About Currency Settings" %}</h4>
+                                            <ul class="list-unstyled">
+                                                <li class="mb-2">
+                                                    <i class="ti ti-check text-success me-2"></i>
+                                                    {% trans "These settings will apply to all budget amounts displayed in the system" %}
+                                                </li>
+                                                <li class="mb-2">
+                                                    <i class="ti ti-check text-success me-2"></i>
+                                                    {% trans "Changes take effect immediately after saving" %}
+                                                </li>
+                                                <li class="mb-2">
+                                                    <i class="ti ti-check text-success me-2"></i>
+                                                    {% trans "Only administrators can modify these settings" %}
+                                                </li>
+                                                <li class="mb-2">
+                                                    <i class="ti ti-check text-success me-2"></i>
+                                                    {% trans "Common currency symbols: $ (USD), € (EUR), £ (GBP), ¥ (JPY), ₹ (INR)" %}
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Live preview update
+document.addEventListener('DOMContentLoaded', function() {
+    const symbolInput = document.getElementById('id_currency_symbol');
+    const positionSelect = document.getElementById('id_position');
+    const preview = document.getElementById('currency-preview');
+    
+    function updatePreview() {
+        const symbol = symbolInput.value || '$';
+        const position = positionSelect.value;
+        const amount = '1,234.56';
+        
+        if (position === 'prefix') {
+            preview.textContent = symbol + amount;
+        } else {
+            preview.textContent = amount + symbol;
+        }
+    }
+    
+    symbolInput.addEventListener('input', updatePreview);
+    positionSelect.addEventListener('change', updatePreview);
+});
+</script>
+{% endblock %}

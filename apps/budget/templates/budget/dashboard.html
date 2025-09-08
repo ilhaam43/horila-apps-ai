@@ -1,0 +1,1853 @@
+{% extends 'budget/base_budget.html' %}
+{% load static %}
+{% load i18n %}
+{% load budget_filters %}
+
+{% block title %}Budget Dashboard - {{white_label_company_name}}{% endblock %}
+
+{% block extra_head %}
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+.budget-dashboard {
+    padding: 0;
+    margin: 0;
+}
+
+.budget-dashboard .card {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border: none;
+    margin-bottom: 1.5rem;
+    border-radius: 0.5rem;
+}
+
+.budget-dashboard .card-body {
+    padding: 1.5rem;
+}
+
+.budget-dashboard .progress {
+    height: 10px;
+    border-radius: 5px;
+}
+
+.budget-dashboard .table th {
+    border-top: none;
+    font-weight: 600;
+    color: #495057;
+    background-color: #f8f9fa;
+}
+
+.budget-dashboard .table td {
+    vertical-align: middle;
+}
+
+.budget-dashboard .badge {
+    font-size: 0.75rem;
+    padding: 0.375rem 0.75rem;
+}
+
+.budget-dashboard .page-header {
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.budget-dashboard .page-title {
+    font-size: 2rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+}
+
+.budget-dashboard .page-subtitle {
+    color: #6c757d;
+    font-size: 1.1rem;
+}
+
+.budget-dashboard .summary-card {
+    transition: all 0.3s ease;
+    border-radius: 15px;
+    border: none;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    position: relative;
+    overflow: hidden;
+}
+
+.budget-dashboard .summary-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: left 0.5s;
+}
+
+.budget-dashboard .summary-card:hover {
+    transform: translateY(-5px) scale(1.02);
+    box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+}
+
+.budget-dashboard .summary-card:hover::before {
+    left: 100%;
+}
+
+/* Enhanced card backgrounds */
+.budget-dashboard .summary-card.bg-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+}
+
+.budget-dashboard .summary-card.bg-success {
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%) !important;
+}
+
+.budget-dashboard .summary-card.bg-warning {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%) !important;
+}
+
+.budget-dashboard .summary-card.bg-info {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%) !important;
+}
+
+.budget-dashboard .summary-card .card-body {
+    position: relative;
+    z-index: 2;
+    padding: 2rem 1.5rem;
+}
+
+.budget-dashboard .summary-card .fas {
+    opacity: 0.8;
+    transition: all 0.3s ease;
+}
+
+.budget-dashboard .summary-card:hover .fas {
+    opacity: 1;
+    transform: scale(1.1) rotate(5deg);
+}
+
+.budget-dashboard .summary-card h2 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 0;
+}
+
+/* Dashboard Main Layout */
+.dashboard-main-layout {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 2rem;
+    align-items: start;
+}
+
+.summary-cards-section {
+    min-height: 400px;
+}
+
+.utilization-chart-section {
+    position: sticky;
+    top: 2rem;
+}
+
+.utilization-chart-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    border-radius: 20px;
+    box-shadow: 0 15px 40px rgba(102, 126, 234, 0.3);
+    backdrop-filter: blur(15px);
+    color: white;
+    height: 100%;
+    min-height: 350px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.utilization-chart-card::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    animation: float 6s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-10px) rotate(5deg); }
+}
+
+.utilization-chart-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 50px rgba(102, 126, 234, 0.4);
+}
+
+.utilization-chart-card .card-header {
+    background: transparent;
+    border: none;
+    padding: 2rem 2rem 0;
+    position: relative;
+    z-index: 2;
+}
+
+.utilization-chart-card .card-header h5 {
+    font-weight: 600;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    margin: 0;
+    color: white;
+}
+
+.utilization-chart-card .card-body {
+    padding: 1rem 2rem 2rem;
+    position: relative;
+    z-index: 2;
+    background: transparent;
+    color: white;
+}
+
+.chart-container {
+    position: relative;
+    height: 180px;
+    margin: 1.5rem 0;
+    background: rgba(255,255,255,0.1);
+    border-radius: 15px;
+    padding: 1rem;
+    backdrop-filter: blur(5px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.utilization-stats {
+    background: rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 1rem;
+    backdrop-filter: blur(10px);
+    margin-top: 1.5rem;
+}
+
+#utilization-percentage {
+    font-size: 2.5rem;
+    font-weight: 700;
+    text-shadow: 0 3px 6px rgba(0,0,0,0.4);
+    background: linear-gradient(45deg, #fff, #e0e7ff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.utilization-stats .progress {
+    background: rgba(255,255,255,0.2);
+    border-radius: 6px;
+    height: 12px;
+    position: relative;
+    overflow: hidden;
+    margin-top: 1rem;
+}
+
+.utilization-stats .progress::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+
+.utilization-stats .progress-bar {
+    background: linear-gradient(90deg, #00f2fe, #4facfe, #00f2fe);
+    border-radius: 6px;
+    transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.utilization-stats .progress-bar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    animation: progressShine 2s ease-in-out infinite;
+}
+
+@keyframes progressShine {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+/* Budget Plans Chart Styling */
+.budget-chart-container {
+    position: relative;
+    height: 250px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 12px;
+    padding: 1rem;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+.budget-chart-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    transition: left 0.5s ease;
+}
+
+.budget-chart-container:hover::before {
+    left: 100%;
+}
+
+.budget-chart-container:hover {
+    transform: translateY(-2px);
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.1), 0 8px 25px rgba(0,0,0,0.1);
+}
+
+.chart-stats {
+    background: rgba(255,255,255,0.8);
+    border-radius: 10px;
+    padding: 1rem;
+    backdrop-filter: blur(5px);
+    border: 1px solid rgba(255,255,255,0.2);
+}
+
+.stat-item {
+    padding: 0.5rem;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.stat-item:hover {
+    background: rgba(255,255,255,0.5);
+    transform: translateY(-2px);
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+    background: linear-gradient(45deg, #007bff, #0056b3);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #6c757d;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.top-plans-list {
+    max-height: 200px;
+    overflow-y: auto;
+    padding-right: 5px;
+}
+
+.top-plans-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+.top-plans-list::-webkit-scrollbar-track {
+    background: rgba(0,0,0,0.1);
+    border-radius: 2px;
+}
+
+.top-plans-list::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    border-radius: 2px;
+}
+
+.top-plans-list::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #0056b3, #004085);
+}
+
+.top-plan-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    border-radius: 8px;
+    border-left: 4px solid #007bff;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.top-plan-item:hover {
+    transform: translateX(5px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.top-plan-item.warning {
+    border-left-color: #ffc107;
+}
+
+.top-plan-item.danger {
+    border-left-color: #dc3545;
+}
+
+.top-plan-item.success {
+    border-left-color: #28a745;
+}
+
+.plan-name {
+    font-weight: 600;
+    color: #495057;
+    font-size: 0.9rem;
+}
+
+.plan-utilization {
+    font-size: 0.8rem;
+    font-weight: 500;
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    background: rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.plan-utilization::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    transition: left 0.5s ease;
+}
+
+.plan-utilization:hover::before {
+    left: 100%;
+}
+
+.plan-utilization.success {
+    background: linear-gradient(135deg, rgba(40, 167, 69, 0.1), rgba(40, 167, 69, 0.2));
+    color: #28a745;
+    border: 1px solid rgba(40, 167, 69, 0.3);
+}
+
+.plan-utilization.warning {
+    background: linear-gradient(135deg, rgba(255, 193, 7, 0.1), rgba(255, 193, 7, 0.2));
+    color: #ffc107;
+    border: 1px solid rgba(255, 193, 7, 0.3);
+}
+
+.plan-utilization.danger {
+    background: linear-gradient(135deg, rgba(220, 53, 69, 0.1), rgba(220, 53, 69, 0.2));
+    color: #dc3545;
+    border: 1px solid rgba(220, 53, 69, 0.3);
+}
+
+/* Chart dropdown styling */
+#chartViewDropdown {
+    border: none;
+    background: transparent;
+    color: #6c757d;
+}
+
+#chartViewDropdown:hover {
+    background: rgba(0,0,0,0.05);
+    color: #495057;
+}
+
+.dropdown-menu {
+    border: none;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    border-radius: 8px;
+}
+
+.dropdown-item {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+}
+
+.dropdown-item:hover {
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    color: white;
+    transform: translateX(5px);
+}
+
+/* Responsive Design */
+@media (max-width: 1400px) {
+    .dashboard-main-layout {
+        gap: 1rem;
+    }
+    
+    .summary-cards-section {
+        flex: 1;
+    }
+    
+    .utilization-chart-section {
+        flex: 0 0 350px;
+    }
+}
+
+@media (max-width: 1200px) {
+    .dashboard-main-layout {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+    
+    .utilization-chart-section {
+        position: static;
+    }
+    
+    .utilization-chart-card {
+        min-height: 300px;
+    }
+}
+
+@media (max-width: 992px) {
+    .summary-cards-section .row {
+        gap: 1rem;
+    }
+    
+    .summary-cards-section .col-xl-6 {
+        flex: 1;
+        min-width: 250px;
+    }
+}
+
+@media (max-width: 768px) {
+    .dashboard-main-layout {
+        gap: 1.5rem;
+    }
+    
+    .summary-cards-section .row {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .summary-cards-section .col-xl-6 {
+        margin-bottom: 0;
+        min-width: auto;
+    }
+    
+    .chart-container {
+        height: 150px;
+        margin: 1rem 0;
+        padding: 0.5rem;
+    }
+    
+    .utilization-chart-card {
+        min-height: 280px;
+    }
+    
+    .utilization-chart-card .card-header {
+        padding: 1.5rem 1.5rem 0;
+    }
+    
+    .utilization-chart-card .card-body {
+        padding: 1rem 1.5rem 1.5rem;
+    }
+    
+    #utilization-percentage {
+        font-size: 2rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .summary-cards-section .row {
+        margin: 0;
+    }
+    
+    .budget-dashboard .summary-card .card-body {
+        padding: 1.5rem 1rem;
+    }
+    
+    .utilization-chart-card {
+        min-height: 250px;
+    }
+    
+    .utilization-chart-card .card-header,
+    .utilization-chart-card .card-body {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+    
+    .chart-container {
+        height: 120px;
+        padding: 0.5rem;
+    }
+    
+    #utilization-percentage {
+        font-size: 1.8rem;
+    }
+    
+    .utilization-stats {
+        padding: 0.75rem;
+        margin-top: 1rem;
+    }
+    
+    /* Budget Plans Chart Responsive */
+    .budget-chart-container {
+        height: 200px;
+        padding: 0.5rem;
+    }
+    
+    .chart-stats {
+        padding: 0.75rem;
+    }
+    
+    .stat-value {
+        font-size: 1.25rem;
+    }
+    
+    .top-plan-item {
+        padding: 0.5rem;
+        margin-bottom: 0.25rem;
+    }
+    
+    .plan-name {
+        font-size: 0.8rem;
+    }
+    
+    .plan-utilization {
+        font-size: 0.7rem;
+        padding: 0.2rem 0.4rem;
+    }
+}
+
+.budget-dashboard .summary-card h4 {
+    font-size: 1rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+
+/* Additional responsive rules for budget plans chart */
+@media (max-width: 768px) {
+    .budget-chart-container {
+        height: 220px;
+    }
+    
+    .top-plans-list {
+        max-height: 150px;
+    }
+}
+
+@media (max-width: 992px) {
+    .budget-chart-container {
+        height: 230px;
+    }
+}
+
+@media (max-width: 768px) {
+    .budget-dashboard .summary-card h2 {
+        font-size: 1.8rem;
+    }
+    
+    .budget-dashboard .summary-card h4 {
+        font-size: 0.9rem;
+    }
+    
+    .budget-dashboard .page-title {
+        font-size: 1.5rem;
+    }
+}
+
+.budget-dashboard .table-responsive {
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.budget-dashboard .alert {
+    border-radius: 0.5rem;
+    border: none;
+}
+
+.budget-dashboard .btn {
+    border-radius: 0.375rem;
+    font-weight: 500;
+}
+
+.budget-dashboard .card-header {
+    background-color: #fff;
+    border-bottom: 1px solid #dee2e6;
+    padding: 1.25rem 1.5rem;
+}
+
+.budget-dashboard .card-header h3 {
+    margin-bottom: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+/* Fix for overlapping content */
+.budget-dashboard .container-fluid {
+    padding-left: 1rem;
+    padding-right: 1rem;
+}
+
+.budget-dashboard .row {
+    margin-left: -0.5rem;
+    margin-right: -0.5rem;
+}
+
+.budget-dashboard .col-xl-3,
+.budget-dashboard .col-lg-6,
+.budget-dashboard .col-md-6,
+.budget-dashboard .col-12 {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+}
+
+/* Loading states */
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.loading::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Recent expenses and alerts styling */
+.recent-expenses-container {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.expense-item {
+    border-bottom: 1px solid #eee;
+    padding: 10px 0;
+}
+
+.expense-item:last-child {
+    border-bottom: none;
+}
+
+.alerts-container .alert {
+    margin-bottom: 10px;
+}
+
+.alerts-container .alert:last-child {
+    margin-bottom: 0;
+}
+
+@media (max-width: 768px) {
+    .recent-expenses-container {
+        max-height: 300px;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="budget-dashboard">
+    <div class="row">
+        <div class="col-12">
+            <div class="page-header d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="page-title">Budget Control Dashboard</h1>
+                    <div class="page-subtitle">Monitor and manage your budget allocations</div>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="{% url 'budget:budget_settings' %}" class="btn btn-outline-primary">
+                        <i class="fas fa-cog me-1"></i>
+                        Currency Settings
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard Main Layout -->
+    <div class="dashboard-main-layout mb-4">
+        <!-- Summary Cards Section -->
+        <div class="summary-cards-section">
+            <div class="row">
+                <div class="col-xl-6 col-lg-6 col-md-6 col-sm-6 mb-3">
+                    <div class="card bg-primary text-white h-100 summary-card">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h4 class="card-title mb-2">Total Budget</h4>
+                                    <h2 id="total-budget">{{ 0|currency_format }}</h2>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-wallet fa-3x opacity-75"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-xl-6 col-lg-6 col-md-6 col-sm-6 mb-3">
+                    <div class="card bg-success text-white h-100 summary-card">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h4 class="card-title mb-2">Total Spent</h4>
+                                    <h2 id="total-spent">{{ 0|currency_format }}</h2>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-credit-card fa-3x opacity-75"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-xl-6 col-lg-6 col-md-6 col-sm-6 mb-3">
+                    <div class="card bg-warning text-white h-100 summary-card">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h4 class="card-title mb-2">Remaining</h4>
+                                    <h2 id="remaining-budget">{{ 0|currency_format }}</h2>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-piggy-bank fa-3x opacity-75"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-xl-6 col-lg-6 col-md-6 col-sm-6 mb-3">
+                    <div class="card bg-info text-white h-100 summary-card">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h4 class="card-title mb-2">Active Plans</h4>
+                                    <h2 id="active-plans">0</h2>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-chart-line fa-3x opacity-75"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Budget Utilization Chart Section -->
+        <div class="utilization-chart-section">
+            <div class="card h-100 utilization-chart-card">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-pie me-2"></i>Budget Utilization
+                    </h5>
+                </div>
+                <div class="card-body d-flex flex-column justify-content-center">
+                    <div class="chart-container">
+                        <canvas id="budgetUtilizationChart" width="300" height="300"></canvas>
+                    </div>
+                    <div class="utilization-stats mt-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted small">Utilization Rate:</span>
+                            <span id="utilization-percentage" class="fw-bold">0%</span>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div id="utilization-progress" class="progress-bar bg-primary" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Budget Plans Overview -->
+    <div class="row mb-4">
+        <div class="col-lg-8">
+            <div class="card dashboard-card">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0"><i class="fas fa-chart-pie me-2"></i>Budget Plans Overview</h5>
+                    <a href="{% url 'budget:plan_create' %}" class="btn btn-primary btn-sm">
+                        <i class="fas fa-plus"></i> New Budget Plan
+                    </a>
+                </div>
+                <!-- Filter Form -->
+                <div class="card-body border-bottom">
+                    <form id="budget-filter-form">
+                        <!-- Main Filters Row -->
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-3">
+                                <label class="form-label text-muted small mb-1">Status</label>
+                                <select name="status" class="form-select form-select-sm" id="filter-status">
+                                    <option value="">All Status</option>
+                                    <option value="draft">Draft</option>
+                                    <option value="active">Active</option>
+                                    <option value="completed">Completed</option>
+                                    <option value="cancelled">Cancelled</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label text-muted small mb-1">Category</label>
+                                <select name="category" class="form-select form-select-sm" id="filter-category">
+                                    <option value="">All Categories</option>
+                                    <!-- Categories will be loaded via AJAX -->
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label text-muted small mb-1">Utilization Status</label>
+                                <select name="utilization_status" class="form-select form-select-sm" id="filter-utilization">
+                                    <option value="">All Utilization</option>
+                                    <option value="under">Under Budget</option>
+                                    <option value="over">Over Budget</option>
+                                    <option value="critical">Critical (>90%)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label text-muted small mb-1">Search</label>
+                                <input type="text" name="search" class="form-control form-control-sm" id="filter-search" placeholder="Search by plan name">
+                            </div>
+                        </div>
+                        
+                        <!-- Date Range Filters Row -->
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-3">
+                                <label class="form-label text-muted small mb-1">Start Date</label>
+                                <input type="date" name="start_date" class="form-control form-control-sm" id="filter-start-date" title="Filter by start date">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label text-muted small mb-1">End Date</label>
+                                <input type="date" name="end_date" class="form-control form-control-sm" id="filter-end-date" title="Filter by end date">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label text-muted small mb-1">Min Budget</label>
+                                <input type="number" name="budget_min" class="form-control form-control-sm" id="filter-budget-min" placeholder="0.00" step="0.01">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label text-muted small mb-1">Max Budget</label>
+                                <input type="number" name="budget_max" class="form-control form-control-sm" id="filter-budget-max" placeholder="0.00" step="0.01">
+                            </div>
+                        </div>
+                        
+                        <!-- Action Buttons Row -->
+                        <div class="row g-3">
+                            <div class="col-12 text-end">
+                                <button type="submit" class="btn btn-primary btn-sm me-2">
+                                    <i class="fas fa-filter"></i> Apply Filters
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" id="clear-filters">
+                                    <i class="fas fa-times"></i> Clear All
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+
+                </div>
+                
+
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0 dashboard-table" id="budget-plans-table">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="border-0">Plan Name</th>
+                                    <th class="border-0">Category</th>
+                                    <th class="border-0">Budget</th>
+                                    <th class="border-0">Spent</th>
+                                    <th class="border-0">Utilization</th>
+                                    <th class="border-0">Status</th>
+                                    <th class="border-0">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Data will be loaded via AJAX -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Budget Plans Visualization -->
+        <div class="col-lg-4">
+            <div class="card dashboard-card h-100">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0"><i class="fas fa-chart-bar me-2"></i>Budget Analysis</h5>
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" id="chartViewDropdown" data-bs-toggle="dropdown">
+                            <i class="fas fa-chart-pie"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#" onclick="switchChartView('utilization')">Utilization Chart</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="switchChartView('category')">Category Breakdown</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="switchChartView('status')">Status Overview</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Chart Container -->
+                    <div class="budget-chart-container mb-3">
+                        <canvas id="budgetPlansChart" width="300" height="250"></canvas>
+                    </div>
+                    
+                    <!-- Chart Legend and Stats -->
+                    <div class="chart-stats">
+                        <div class="row text-center">
+                            <div class="col-4">
+                                <div class="stat-item">
+                                    <div class="stat-value text-success" id="under-budget-count">0</div>
+                                    <div class="stat-label small text-muted">Under Budget</div>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="stat-item">
+                                    <div class="stat-value text-warning" id="near-limit-count">0</div>
+                                    <div class="stat-label small text-muted">Near Limit</div>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="stat-item">
+                                    <div class="stat-value text-danger" id="over-budget-count">0</div>
+                                    <div class="stat-label small text-muted">Over Budget</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Top Budget Plans -->
+                    <div class="top-plans mt-3">
+                        <h6 class="text-muted mb-2">Top Budget Plans</h6>
+                        <div id="top-budget-plans" class="top-plans-list">
+                            <!-- Will be populated via JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Monthly Expense Categories Chart -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card dashboard-card">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0"><i class="fas fa-chart-pie me-2"></i>Monthly Expense Categories</h5>
+                    <div class="d-flex gap-2">
+                        <select id="expense-month-filter" class="form-select form-select-sm" style="width: auto;">
+                            <!-- Options will be populated via JavaScript -->
+                        </select>
+                        <button type="button" class="btn btn-outline-primary btn-sm" id="refresh-expense-chart">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="text-center">
+                                <canvas id="monthlyExpenseDonutChart" width="400" height="400"></canvas>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div id="expense-categories-legend" class="mt-3">
+                                <!-- Legend will be populated via JavaScript -->
+                            </div>
+                            <div class="mt-3">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="text-muted">Total Monthly Expenses:</span>
+                                    <span id="total-monthly-expenses" class="fw-bold">$0.00</span>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="text-muted">Categories:</span>
+                                    <span id="categories-count" class="fw-bold">0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Budget Alerts - DISABLED -->
+    <!-- 
+    <div class="row">
+        <div class="col-12">
+            <div class="card dashboard-card">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Budget Alerts</h5>
+                </div>
+                <div class="card-body">
+                    <div id="budget-alerts" class="alerts-container">
+                        <!-- Alerts will be loaded via AJAX -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    -->
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// CSRF Token setup for AJAX requests
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+const csrftoken = getCookie('csrftoken');
+
+// Setup AJAX to include CSRF token
+$.ajaxSetup({
+    beforeSend: function(xhr, settings) {
+        if (!(/^http:.*/.test(settings.url) || /^https:.*/.test(settings.url))) {
+            // Only send the token to relative URLs i.e. locally.
+            xhr.setRequestHeader("X-CSRFToken", csrftoken);
+        }
+    }
+});
+
+$(document).ready(function() {
+    // Initialize charts first
+    initializeCharts();
+    
+    // Initialize card animations
+    initializeCardAnimations();
+    
+    // Load dashboard data
+    loadDashboardData();
+    loadCategories();
+    
+    // Handle filter form submission
+    $('#budget-filter-form').on('submit', function(e) {
+        if (e && e.preventDefault) {
+            e.preventDefault();
+        }
+        loadBudgetPlans();
+    });
+    
+    // Handle clear filters
+    $('#clear-filters').on('click', function(e) {
+        if (e && e.preventDefault) {
+            e.preventDefault();
+        }
+        var form = document.getElementById('budget-filter-form');
+        if (form) {
+            form.reset();
+        }
+        loadBudgetPlans();
+    });
+    
+    // Refresh data every 30 seconds
+    setInterval(loadDashboardData, 30000);
+});
+
+// Initialize card animations
+function initializeCardAnimations() {
+    // Animate cards on load
+    $('.summary-card').each(function(index) {
+        $(this).css({
+            'opacity': '0',
+            'transform': 'translateY(30px)'
+        }).delay(index * 100).animate({
+            'opacity': '1'
+        }, 600).css({
+            'transform': 'translateY(0)'
+        });
+    });
+}
+
+// Animate counter numbers
+function animateCounter(element, targetValue, duration = 1000) {
+    const startValue = 0;
+    const increment = targetValue / (duration / 16);
+    let currentValue = startValue;
+    
+    const timer = setInterval(() => {
+        currentValue += increment;
+        if (currentValue >= targetValue) {
+            currentValue = targetValue;
+            clearInterval(timer);
+        }
+        
+        if (element.id.includes('budget') || element.id.includes('spent') || element.id.includes('remaining')) {
+            element.textContent = formatCurrency(currentValue);
+        } else {
+            element.textContent = Math.floor(currentValue);
+        }
+    }, 16);
+}
+
+function loadDashboardData() {
+    // Load summary statistics
+    $.get('/api/budget/dashboard/', function(data) {
+        // Animate counters with new values
+        animateCounter(document.getElementById('total-budget'), parseFloat(data.total_allocated || 0));
+        animateCounter(document.getElementById('total-spent'), parseFloat(data.total_spent || 0));
+        animateCounter(document.getElementById('remaining-budget'), parseFloat(data.total_remaining || 0));
+        animateCounter(document.getElementById('active-plans'), parseInt(data.active_budgets || 0));
+        
+        // Update charts with new data
+        updateCharts(data);
+    }).fail(function(xhr, status, error) {
+        console.error('Failed to load dashboard data:', error);
+        // Set default values on error
+        $('#total-budget').text('IDR0.00');
+        $('#total-spent').text('IDR0.00');
+        $('#remaining-budget').text('IDR0.00');
+        $('#active-plans').text('0');
+    });
+    
+    // Load budget plans
+    loadBudgetPlans();
+    
+    // Load recent expenses
+    loadRecentExpenses();
+}
+
+// Function to update summary statistics based on filtered data
+function updateSummaryFromFilteredData(filteredPlans) {
+    let totalAllocated = 0;
+    let totalSpent = 0;
+    let activePlans = 0;
+    
+    filteredPlans.forEach(function(plan) {
+        if (plan.status === 'active') {
+            totalAllocated += parseFloat(plan.allocated_amount || 0);
+            totalSpent += parseFloat(plan.spent_amount || 0);
+            activePlans++;
+        }
+    });
+    
+    const remaining = totalAllocated - totalSpent;
+    
+    $('#total-budget').text(formatCurrency(totalAllocated));
+    $('#total-spent').text(formatCurrency(totalSpent));
+    $('#remaining-budget').text(formatCurrency(remaining));
+    $('#active-plans').text(activePlans);
+}
+
+function loadCategories() {
+    $.get('/api/budget/categories/', function(data) {
+        var categorySelect = $('#filter-category');
+        categorySelect.find('option:not(:first)').remove();
+        
+        if (data && data.results) {
+            data.results.forEach(function(category) {
+                if (category && category.id && category.name) {
+                    categorySelect.append(`<option value="${category.id}">${category.name}</option>`);
+                }
+            });
+        }
+    }).fail(function(xhr, status, error) {
+        console.error('Failed to load categories:', error);
+    });
+}
+
+function loadBudgetPlans() {
+    // Get filter values
+    var params = {};
+    var status = $('#filter-status').val();
+    var category = $('#filter-category').val();
+    var startDate = $('#filter-start-date').val();
+    var endDate = $('#filter-end-date').val();
+    var utilizationStatus = $('#filter-utilization').val();
+    var budgetMin = $('#filter-budget-min').val();
+    var budgetMax = $('#filter-budget-max').val();
+    var search = $('#filter-search').val();
+    
+    if (status) params.status = status;
+    if (category) params.category = category;
+    if (startDate) params.start_date = startDate;
+    if (endDate) params.end_date = endDate;
+    if (utilizationStatus) params.utilization_status = utilizationStatus;
+    if (budgetMin) params.budget_min = budgetMin;
+    if (budgetMax) params.budget_max = budgetMax;
+    if (search) params.search = search;
+    
+    $.get('/api/budget/dashboard/budget_plans/', params, function(data) {
+        var tbody = $('#budget-plans-table tbody');
+        tbody.empty();
+        
+        if (data && data.length > 0) {
+            // Update summary statistics based on filtered data
+            updateSummaryFromFilteredData(data);
+            
+            data.forEach(function(plan) {
+                var utilizationPercentage = plan.utilization_percentage || 0;
+                var utilizationClass = utilizationPercentage > 90 ? 'danger' : 
+                                     utilizationPercentage > 75 ? 'warning' : 'success';
+                
+                var row = `
+                    <tr>
+                        <td>${plan.name || 'N/A'}</td>
+                        <td>${(plan.category && plan.category.name) ? plan.category.name : 'N/A'}</td>
+                        <td>${formatCurrency(plan.allocated_amount || 0)}</td>
+                <td>${formatCurrency(plan.spent_amount || 0)}</td>
+                        <td>
+                            <div class="progress">
+                                <div class="progress-bar bg-${utilizationClass}" 
+                                     style="width: ${utilizationPercentage}%">
+                                    ${utilizationPercentage.toFixed(1)}%
+                                </div>
+                            </div>
+                        </td>
+                        <td><span class="badge badge-${getStatusClass(plan.status)}">${plan.status || 'N/A'}</span></td>
+                        <td>
+                            <a href="/budget/plans/${plan.id}/" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                `;
+                tbody.append(row);
+            });
+            
+            // Update budget plans chart
+            updateBudgetPlansChart(data);
+        } else {
+            tbody.append('<tr><td colspan="7" class="text-center text-muted">No budget plans found</td></tr>');
+            // Reset summary to zero when no data found
+            updateSummaryFromFilteredData([]);
+        }
+    }).fail(function(xhr, status, error) {
+        console.error('Failed to load budget plans:', error);
+        $('#budget-plans-table tbody').html('<tr><td colspan="7" class="text-center text-danger">Failed to load budget plans</td></tr>');
+    });
+}
+
+function loadRecentExpenses() {
+    $.get('/api/budget/expenses/', { limit: 5, ordering: '-created_at' })
+        .done(function(data) {
+            const container = $('#recent-expenses');
+            container.empty();
+            
+            if (data.results && data.results.length > 0) {
+                data.results.forEach(function(expense) {
+                    const expenseItem = `
+                        <div class="expense-item">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1">${expense.title || 'N/A'}</h6>
+                                    <small class="text-muted">${formatDate(expense.expense_date)}</small>
+                                    ${(expense.budget_plan && expense.budget_plan.name) ? `<br><small class="text-info">${expense.budget_plan.name}</small>` : ''}
+                                </div>
+                                <div class="text-end">
+                                    <div class="fw-bold text-primary">${formatCurrency(expense.amount || 0)}</div>
+                                    <span class="badge ${getStatusClass(expense.status || 'pending')} badge-sm">${expense.status || 'pending'}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    container.append(expenseItem);
+                });
+            } else {
+                container.html('<div class="text-center text-muted py-3"><i class="fas fa-receipt fa-2x mb-2"></i><br>No recent expenses found</div>');
+            }
+        })
+        .fail(function() {
+            $('#recent-expenses').html('<div class="text-center text-danger py-3"><i class="fas fa-exclamation-triangle fa-2x mb-2"></i><br>Error loading recent expenses</div>');
+        });
+}
+
+// Load budget alerts - DISABLED (function removed to prevent JavaScript errors)
+
+// Chart variables
+let budgetUtilizationChart = null;
+let monthlyExpenseDonutChart = null;
+
+// Initialize charts
+function initializeCharts() {
+    initializeBudgetUtilizationChart();
+    initializeMonthlyExpenseDonutChart();
+}
+
+// Budget Utilization Pie Chart
+function initializeBudgetUtilizationChart() {
+    const ctx = document.getElementById('budgetUtilizationChart').getContext('2d');
+    
+    budgetUtilizationChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Spent', 'Remaining'],
+            datasets: [{
+                data: [0, 100],
+                backgroundColor: [
+                    '#dc3545',
+                    '#28a745'
+                ],
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.label + ': ' + formatCurrency(context.parsed);
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Update charts with dashboard data
+function updateCharts(dashboardData) {
+    // Update budget utilization chart
+    if (budgetUtilizationChart && dashboardData.total_allocated > 0) {
+        const spent = parseFloat(dashboardData.total_spent || 0);
+        const remaining = parseFloat(dashboardData.total_remaining || 0);
+        const allocated = parseFloat(dashboardData.total_allocated || 0);
+        
+        budgetUtilizationChart.data.datasets[0].data = [spent, remaining];
+        budgetUtilizationChart.update();
+        
+        // Update utilization percentage and progress bar
+        const utilizationRate = allocated > 0 ? (spent / allocated * 100) : 0;
+        document.getElementById('utilization-percentage').textContent = utilizationRate.toFixed(1) + '%';
+        
+        const progressBar = document.getElementById('utilization-progress');
+        progressBar.style.width = Math.min(utilizationRate, 100) + '%';
+        
+        // Change progress bar color based on utilization rate
+        if (utilizationRate > 90) {
+            progressBar.className = 'progress-bar bg-danger';
+        } else if (utilizationRate > 75) {
+            progressBar.className = 'progress-bar bg-warning';
+        } else {
+            progressBar.className = 'progress-bar bg-success';
+        }
+    }
+}
+
+// Monthly Expense Donut Chart
+function initializeMonthlyExpenseDonutChart() {
+    const ctx = document.getElementById('monthlyExpenseDonutChart').getContext('2d');
+    
+    monthlyExpenseDonutChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: [],
+            datasets: [{
+                data: [],
+                backgroundColor: [
+                    '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
+                    '#FF9F40', '#FF6384', '#C9CBCF', '#4BC0C0', '#FF6384'
+                ],
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = ((context.parsed / total) * 100).toFixed(1);
+                            return context.label + ': ' + formatCurrency(context.parsed) + ' (' + percentage + '%)';
+                        }
+                    }
+                }
+            }
+        }
+    });
+    
+    // Initialize month filter
+    initializeExpenseMonthFilter();
+    
+    // Load initial data
+    loadMonthlyExpenseData();
+}
+
+// Initialize month filter dropdown
+function initializeExpenseMonthFilter() {
+    const monthFilter = document.getElementById('expense-month-filter');
+    const currentDate = new Date();
+    
+    // Generate last 12 months
+    for (let i = 0; i < 12; i++) {
+        const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+        const value = date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0');
+        const text = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        
+        const option = document.createElement('option');
+        option.value = value;
+        option.textContent = text;
+        if (i === 0) option.selected = true; // Select current month
+        
+        monthFilter.appendChild(option);
+    }
+    
+    // Add event listener
+    monthFilter.addEventListener('change', loadMonthlyExpenseData);
+    document.getElementById('refresh-expense-chart').addEventListener('click', loadMonthlyExpenseData);
+}
+
+// Load monthly expense data
+function loadMonthlyExpenseData() {
+    const monthFilter = document.getElementById('expense-month-filter');
+    const selectedMonth = monthFilter.value;
+    
+    if (!selectedMonth) return;
+    
+    // Show loading state
+    const canvas = document.getElementById('monthlyExpenseDonutChart');
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#6c757d';
+    ctx.font = '16px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('Loading...', canvas.width / 2, canvas.height / 2);
+    
+    $.ajax({
+        url: '/api/budget/dashboard/monthly_expense_donut/',
+        method: 'GET',
+        data: {
+            month: selectedMonth
+        },
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    })
+    .done(function(response) {
+        updateMonthlyExpenseChart(response);
+    })
+    .fail(function(xhr) {
+        console.error('Error loading monthly expense data:', xhr.responseText);
+        const canvas = document.getElementById('monthlyExpenseDonutChart');
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#dc3545';
+        ctx.font = '16px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('Error loading data', canvas.width / 2, canvas.height / 2);
+    });
+}
+
+// Update monthly expense chart with data
+function updateMonthlyExpenseChart(data) {
+    if (!monthlyExpenseDonutChart || !data.categories) return;
+    
+    const labels = data.categories.map(cat => cat.name);
+    const amounts = data.categories.map(cat => parseFloat(cat.amount));
+    
+    // Update chart data
+    monthlyExpenseDonutChart.data.labels = labels;
+    monthlyExpenseDonutChart.data.datasets[0].data = amounts;
+    monthlyExpenseDonutChart.update();
+    
+    // Update legend
+    updateExpenseCategoriesLegend(data.categories);
+    
+    // Update summary
+    document.getElementById('total-monthly-expenses').textContent = formatCurrency(data.total_amount || 0);
+    document.getElementById('categories-count').textContent = data.categories.length;
+}
+
+// Update expense categories legend
+function updateExpenseCategoriesLegend(categories) {
+    const legendContainer = document.getElementById('expense-categories-legend');
+    legendContainer.innerHTML = '';
+    
+    if (!categories || categories.length === 0) {
+        legendContainer.innerHTML = '<div class="text-center text-muted py-3"><i class="fas fa-chart-pie fa-2x mb-2"></i><br>No expense data available</div>';
+        return;
+    }
+    
+    const colors = [
+        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
+        '#FF9F40', '#FF6384', '#C9CBCF', '#4BC0C0', '#FF6384'
+    ];
+    
+    categories.forEach((category, index) => {
+        const percentage = ((parseFloat(category.amount) / categories.reduce((sum, cat) => sum + parseFloat(cat.amount), 0)) * 100).toFixed(1);
+        
+        const legendItem = document.createElement('div');
+        legendItem.className = 'd-flex justify-content-between align-items-center mb-2 p-2 border rounded';
+        legendItem.innerHTML = `
+            <div class="d-flex align-items-center">
+                <div class="legend-color-box me-2" style="width: 16px; height: 16px; background-color: ${colors[index % colors.length]}; border-radius: 2px;"></div>
+                <span class="fw-medium">${category.name}</span>
+            </div>
+            <div class="text-end">
+                <div class="fw-bold">${formatCurrency(category.amount)}</div>
+                <small class="text-muted">${percentage}%</small>
+            </div>
+        `;
+        
+        legendContainer.appendChild(legendItem);
+    });
+}
+
+function formatNumber(num) {
+    return parseFloat(num).toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+}
+
+function formatCurrency(amount) {
+    // Use the same format as Django currency_format filter
+    var formattedAmount = parseFloat(amount).toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+    
+    // Always use IDR prefix format to match Django filter
+    return 'IDR' + formattedAmount;
+}
+
+function formatDate(dateStr) {
+    return new Date(dateStr).toLocaleDateString('en-US');
+}
+
+function getStatusClass(status) {
+    const statusClasses = {
+        'active': 'success',
+        'draft': 'secondary',
+        'completed': 'info',
+        'cancelled': 'danger',
+        'pending': 'warning',
+        'approved': 'success',
+        'rejected': 'danger',
+        'paid': 'primary'
+    };
+    return statusClasses[status] || 'secondary';
+}
+
+// Budget Plans Chart Variables
+let budgetPlansChart = null;
+
+// Initialize Budget Plans Chart
+function initBudgetPlansChart() {
+    const ctx = document.getElementById('budgetPlansChart');
+    if (!ctx) return;
+    
+    budgetPlansChart = new Chart(ctx.getContext('2d'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Under Budget', 'Near Limit', 'Over Budget'],
+            datasets: [{
+                data: [0, 0, 0],
+                backgroundColor: [
+                    'rgba(40, 167, 69, 0.8)',
+                    'rgba(255, 193, 7, 0.8)',
+                    'rgba(220, 53, 69, 0.8)'
+                ],
+                borderColor: [
+                    '#28a745',
+                    '#ffc107',
+                    '#dc3545'
+                ],
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 20,
+                        usePointStyle: true,
+                        font: {
+                            size: 12,
+                            weight: '500'
+                        }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.parsed || 0;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                            return `${label}: ${value} plans (${percentage}%)`;
+                        }
+                    }
+                }
+            },
+            animation: {
+                animateRotate: true,
+                duration: 1000
+            }
+        }
+    });
+}
+
+// Update Budget Plans Chart
+function updateBudgetPlansChart(budgetPlans) {
+    if (!budgetPlansChart) {
+        initBudgetPlansChart();
+    }
+    
+    if (!budgetPlansChart) return;
+    
+    let underBudget = 0;
+    let nearLimit = 0;
+    let overBudget = 0;
+    let topPlans = [];
+    
+    budgetPlans.forEach(plan => {
+        const utilization = parseFloat(plan.utilization_percentage) || 0;
+        
+        if (utilization < 70) {
+            underBudget++;
+        } else if (utilization < 90) {
+            nearLimit++;
+        } else {
+            overBudget++;
+        }
+        
+        // Collect top plans (highest utilization)
+        topPlans.push({
+            name: plan.name,
+            utilization: utilization,
+            status: utilization < 70 ? 'success' : utilization < 90 ? 'warning' : 'danger'
+        });
+    });
+    
+    // Sort and get top 5 plans
+    topPlans.sort((a, b) => b.utilization - a.utilization);
+    topPlans = topPlans.slice(0, 5);
+    
+    // Update chart data
+    budgetPlansChart.data.datasets[0].data = [underBudget, nearLimit, overBudget];
+    budgetPlansChart.update();
+    
+    // Update statistics
+    const underBudgetEl = document.getElementById('under-budget-count');
+    const nearLimitEl = document.getElementById('near-limit-count');
+    const overBudgetEl = document.getElementById('over-budget-count');
+    
+    if (underBudgetEl) underBudgetEl.textContent = underBudget;
+    if (nearLimitEl) nearLimitEl.textContent = nearLimit;
+    if (overBudgetEl) overBudgetEl.textContent = overBudget;
+    
+    // Update top plans list
+    updateTopPlansList(topPlans);
+}
+
+// Update Top Plans List
+function updateTopPlansList(topPlans) {
+    const container = document.getElementById('top-budget-plans');
+    if (!container) return;
+    
+    // Add loading animation
+    container.innerHTML = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary" role="status"></div></div>';
+    
+    setTimeout(() => {
+        container.innerHTML = '';
+        
+        if (topPlans.length === 0) {
+            container.innerHTML = '<div class="text-muted text-center py-3">No budget plans available</div>';
+            return;
+        }
+        
+        topPlans.forEach((plan, index) => {
+            const planItem = document.createElement('div');
+            planItem.className = `top-plan-item ${plan.status}`;
+            planItem.style.opacity = '0';
+            planItem.style.transform = 'translateY(20px)';
+            planItem.innerHTML = `
+                <div class="plan-name">${plan.name}</div>
+                <div class="plan-utilization ${plan.status}">${plan.utilization.toFixed(1)}%</div>
+            `;
+            container.appendChild(planItem);
+            
+            // Animate each item with delay
+            setTimeout(() => {
+                planItem.style.transition = 'all 0.5s ease';
+                planItem.style.opacity = '1';
+                planItem.style.transform = 'translateY(0)';
+            }, index * 100);
+        });
+    }, 300);
+}
+
+// Chart View Dropdown Handler
+function changeChartView(viewType) {
+    // This function can be extended to show different chart types
+    // For now, we'll keep the doughnut chart but could add bar charts, etc.
+    console.log('Chart view changed to:', viewType);
+}
+
+// Initialize budget plans chart when document is ready
+$(document).ready(function() {
+    // Add budget plans chart initialization to existing ready function
+    setTimeout(function() {
+        initBudgetPlansChart();
+    }, 500);
+});
+</script>
+{% endblock %}

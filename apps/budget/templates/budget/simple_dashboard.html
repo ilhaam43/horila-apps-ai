@@ -1,0 +1,1462 @@
+<!-- Template Updated: 2025-01-06 05:10:00 FORCE RELOAD -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Simple Financial Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --primary-color: #3498db;
+        --secondary-color: #2c3e50;
+        --success-color: #27ae60;
+        --warning-color: #f39c12;
+        --danger-color: #e74c3c;
+        --light-bg: #f8f9fa;
+        --card-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        --card-hover-shadow: 0 8px 30px rgba(0,0,0,0.12);
+        --border-radius: 16px;
+        --spacing-xs: 8px;
+        --spacing-sm: 16px;
+        --spacing-md: 24px;
+        --spacing-lg: 32px;
+        --spacing-xl: 48px;
+        --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .dashboard-container {
+        max-width: 1440px;
+        margin: 0 auto;
+        padding: var(--spacing-lg);
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        min-height: 100vh;
+    }
+    
+    .dashboard-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: var(--border-radius);
+        padding: var(--spacing-xl);
+        margin-bottom: var(--spacing-xl);
+        box-shadow: var(--card-shadow);
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .dashboard-header::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255,255,255,0.1);
+        backdrop-filter: blur(10px);
+    }
+    
+    .dashboard-header h1 {
+        font-size: 2.75rem;
+        font-weight: 700;
+        color: white;
+        margin-bottom: var(--spacing-sm);
+        position: relative;
+        z-index: 1;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .dashboard-header p {
+        font-size: 1.2rem;
+        color: rgba(255,255,255,0.9);
+        margin: 0;
+        position: relative;
+        z-index: 1;
+        font-weight: 400;
+    }
+    
+    .dashboard-subtitle {
+        font-size: 1.1rem;
+        color: rgba(255,255,255,0.8);
+        margin: var(--spacing-sm) 0 0 0;
+        opacity: 0.9;
+        font-weight: 400;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .metrics-section {
+        margin-bottom: var(--spacing-xl);
+    }
+    
+    /* Dashboard Main Layout */
+    .dashboard-main-layout {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 30px;
+        margin-bottom: 30px;
+    }
+    
+    .metrics-container {
+        background: white;
+        border-radius: 12px;
+        padding: 25px;
+        box-shadow: var(--card-shadow);
+    }
+    
+    .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+    }
+    
+    /* Utilization Container */
+    .utilization-container {
+        display: flex;
+        align-items: stretch;
+    }
+    
+    .utilization-card {
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+        border-radius: 16px;
+        padding: 30px;
+        color: white;
+        width: 100%;
+        box-shadow: var(--card-shadow);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .utilization-card::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+        pointer-events: none;
+    }
+    
+    .utilization-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+        position: relative;
+        z-index: 2;
+    }
+    
+    .utilization-title {
+        font-size: 1.4rem;
+        font-weight: 600;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .utilization-title i {
+        font-size: 1.6rem;
+    }
+    
+    .utilization-percentage {
+        font-size: 2.5rem;
+        font-weight: 700;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    
+    .utilization-chart {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin: 20px 0;
+        position: relative;
+        z-index: 2;
+    }
+    
+    .utilization-chart canvas {
+        max-width: 200px;
+        max-height: 200px;
+    }
+    
+    .utilization-legend {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        position: relative;
+        z-index: 2;
+    }
+    
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 0.95rem;
+    }
+    
+    .legend-color {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    
+    .legend-item.spent .legend-color {
+        background: #ff6b6b;
+    }
+    
+    .legend-item.remaining .legend-color {
+        background: #4ecdc4;
+    }
+    
+    .legend-label {
+            font-weight: 500;
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .dashboard-main-layout {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .utilization-card {
+                padding: 25px;
+            }
+            
+            .utilization-percentage {
+                font-size: 2rem;
+            }
+            
+            .utilization-title {
+                font-size: 1.2rem;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .metrics-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
+            .metrics-container {
+                padding: 20px;
+            }
+            
+            .utilization-card {
+                padding: 20px;
+            }
+            
+            .utilization-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            
+            .utilization-percentage {
+                font-size: 1.8rem;
+            }
+            
+            .utilization-chart canvas {
+                max-width: 150px;
+                max-height: 150px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .dashboard-main-layout {
+                gap: 15px;
+            }
+            
+            .metrics-container,
+            .utilization-card {
+                padding: 15px;
+            }
+            
+            .utilization-title {
+                font-size: 1.1rem;
+            }
+            
+            .utilization-percentage {
+                font-size: 1.5rem;
+            }
+        }
+    
+    .metric-card {
+        background: white;
+        border-radius: 16px;
+        padding: 25px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1px solid rgba(255,255,255,0.1);
+        position: relative;
+        overflow: hidden;
+        backdrop-filter: blur(10px);
+    }
+    
+    .metric-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--accent-color), var(--accent-color-light));
+        transform: scaleX(0);
+        transition: transform 0.3s ease;
+    }
+    
+    .metric-card:hover {
+        transform: translateY(-8px) scale(1.02);
+        box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+    }
+    
+    .metric-card:hover::before {
+        transform: scaleX(1);
+    }
+    
+    .metric-card.budget { 
+        --accent-color: var(--primary-color); 
+        --accent-color-light: #5dade2;
+        background: linear-gradient(135deg, rgba(74, 144, 226, 0.05) 0%, rgba(74, 144, 226, 0.02) 100%);
+    }
+    .metric-card.spent { 
+        --accent-color: var(--danger-color); 
+        --accent-color-light: #ec7063;
+        background: linear-gradient(135deg, rgba(255, 107, 107, 0.05) 0%, rgba(255, 107, 107, 0.02) 100%);
+    }
+    .metric-card.remaining { 
+        --accent-color: var(--success-color); 
+        --accent-color-light: #58d68d;
+        background: linear-gradient(135deg, rgba(78, 205, 196, 0.05) 0%, rgba(78, 205, 196, 0.02) 100%);
+    }
+    .metric-card.utilization { 
+        --accent-color: var(--warning-color); 
+        --accent-color-light: #f7dc6f;
+        background: linear-gradient(135deg, rgba(243, 156, 18, 0.05) 0%, rgba(243, 156, 18, 0.02) 100%);
+    }
+    
+    .metric-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: var(--spacing-md);
+    }
+    
+    .metric-icon {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.75rem;
+        color: white;
+        background: linear-gradient(135deg, var(--accent-color), var(--accent-color-light));
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+    }
+    
+    .metric-icon::before {
+        content: '';
+        position: absolute;
+        top: -2px;
+        left: -2px;
+        right: -2px;
+        bottom: -2px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--accent-color), var(--accent-color-light));
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        z-index: -1;
+    }
+    
+    .metric-card:hover .metric-icon {
+        transform: scale(1.15) rotate(10deg);
+        box-shadow: 0 12px 35px rgba(0,0,0,0.25);
+    }
+    
+    .metric-card:hover .metric-icon::before {
+        opacity: 0.3;
+    }
+    
+    .metric-value {
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: var(--secondary-color);
+        margin-bottom: var(--spacing-xs);
+        line-height: 1.2;
+        background: linear-gradient(135deg, var(--accent-color), var(--accent-color-light));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    
+    .metric-label {
+        font-size: 1rem;
+        color: #6c757d;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: var(--spacing-sm);
+    }
+    
+    .progress-bar {
+        width: 100%;
+        height: 8px;
+        background: #e9ecef;
+        border-radius: 4px;
+        overflow: hidden;
+        margin-top: var(--spacing-sm);
+    }
+    
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--accent-color), var(--accent-color-light));
+        border-radius: 4px;
+        transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .progress-fill::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+        animation: shimmer 2.5s infinite;
+        transform: translateX(-100%);
+    }
+    
+    .progress-fill::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(90deg, rgba(255,255,255,0.1), rgba(255,255,255,0.3), rgba(255,255,255,0.1));
+        animation: pulse 3s ease-in-out infinite;
+    }
+    
+    @keyframes shimmer {
+        0% { transform: translateX(-100%); }
+        50% { transform: translateX(100%); }
+        100% { transform: translateX(100%); }
+    }
+    
+    @keyframes progressGrow {
+        0% { width: 0%; }
+        100% { width: var(--target-width); }
+    }
+    
+    .progress-fill.animate {
+        animation: progressGrow 1.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+    
+    .no-data {
+        text-align: center;
+        padding: var(--spacing-xl);
+        color: #6c757d;
+    }
+    
+    .no-data i {
+        font-size: 3rem;
+        color: #dee2e6;
+        margin-bottom: var(--spacing-md);
+        display: block;
+    }
+    
+    .no-data p {
+        font-size: 1.1rem;
+        font-weight: 500;
+        margin: 0;
+        color: #6c757d;
+    }
+    
+    /* Loading Animation */
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.5; }
+        100% { opacity: 1; }
+    }
+    
+    .loading {
+        animation: pulse 1.5s ease-in-out infinite;
+    }
+    
+    /* Smooth transitions for all interactive elements */
+    * {
+        transition: var(--transition);
+    }
+    
+    /* Focus states for accessibility */
+    .metric-card:focus,
+    .chart-card:focus,
+    .stats-card:focus {
+        outline: 2px solid var(--primary-color);
+        outline-offset: 2px;
+    }
+    
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+        width: 8px;
+    }
+    
+    ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+        background: var(--primary-color);
+        border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+        background: var(--secondary-color);
+    }
+    
+    .charts-section {
+        margin-bottom: var(--spacing-xl);
+    }
+    
+    .section-title {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: var(--secondary-color);
+        margin-bottom: var(--spacing-lg);
+        display: flex;
+        align-items: center;
+        position: relative;
+        padding-bottom: var(--spacing-sm);
+    }
+    
+    .section-title::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 60px;
+        height: 3px;
+        background: linear-gradient(90deg, var(--primary-color), #5dade2);
+        border-radius: 2px;
+    }
+    
+    .section-title i {
+        margin-right: var(--spacing-sm);
+        color: var(--primary-color);
+        font-size: 1.5rem;
+    }
+    
+    .charts-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
+        gap: var(--spacing-lg);
+    }
+    
+    .chart-card {
+        background: white;
+        border-radius: var(--border-radius);
+        padding: var(--spacing-xl);
+        box-shadow: var(--card-shadow);
+        border: none;
+        transition: var(--transition);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .chart-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--primary-color), #5dade2);
+    }
+    
+    .chart-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--card-hover-shadow);
+    }
+    
+    .chart-header {
+        margin-bottom: var(--spacing-md);
+        text-align: center;
+    }
+    
+    .chart-title {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: var(--secondary-color);
+        margin: 0 0 var(--spacing-xs) 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .chart-title i {
+        margin-right: var(--spacing-sm);
+        color: var(--primary-color);
+        font-size: 1.2rem;
+    }
+    
+    .chart-description {
+        font-size: 0.9rem;
+        color: #6c757d;
+        margin: 0;
+        opacity: 0.8;
+        font-weight: 400;
+    }
+    
+    .chart-container {
+        position: relative;
+        height: 350px;
+        margin-bottom: var(--spacing-sm);
+        padding: var(--spacing-sm);
+    }
+    
+
+    
+    .quick-stats {
+        margin-bottom: var(--spacing-xl);
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+        gap: var(--spacing-lg);
+    }
+    
+    .stats-card {
+        background: white;
+        border-radius: var(--border-radius);
+        padding: var(--spacing-xl);
+        box-shadow: var(--card-shadow);
+        border: none;
+        transition: var(--transition);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .stats-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--success-color), #58d68d);
+    }
+    
+    .stats-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--card-hover-shadow);
+    }
+    
+    .stats-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: var(--spacing-md);
+        padding-bottom: var(--spacing-sm);
+        border-bottom: 1px solid #f1f3f4;
+    }
+    
+    .stats-title {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: var(--secondary-color);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        position: relative;
+    }
+    
+    .stats-title::after {
+        content: '';
+        position: absolute;
+        bottom: -8px;
+        left: 0;
+        width: 40px;
+        height: 2px;
+        background: var(--primary-color);
+        border-radius: 1px;
+    }
+    
+    .stats-title i {
+        margin-right: var(--spacing-sm);
+        color: var(--primary-color);
+        font-size: 1.2rem;
+    }
+    
+    .stats-count {
+        font-size: 0.85rem;
+        color: #6c757d;
+        background: #f8f9fa;
+        padding: 0.25rem 0.5rem;
+        border-radius: 12px;
+        font-weight: 500;
+        border: 1px solid #dee2e6;
+    }
+    
+    .stats-content {
+        margin-top: var(--spacing-md);
+    }
+    
+    .category-progress {
+        margin-top: var(--spacing-xs);
+    }
+    
+    .expense-date {
+        font-size: 0.8rem;
+        color: #6c757d;
+        margin-top: var(--spacing-xs);
+        font-weight: 400;
+    }
+    
+    .expense-item, .category-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: var(--spacing-md) 0;
+        border-bottom: 1px solid #f1f3f4;
+        transition: var(--transition);
+        border-radius: var(--spacing-xs);
+    }
+    
+    .expense-item:hover, .category-item:hover {
+        background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+        margin: 0 calc(-1 * var(--spacing-sm));
+        padding-left: var(--spacing-sm);
+        padding-right: var(--spacing-sm);
+        border-radius: var(--spacing-sm);
+        transform: translateX(4px);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .expense-item:last-child, .category-item:last-child {
+        border-bottom: none;
+    }
+    
+    .expense-info {
+        flex: 1;
+    }
+    
+    .expense-name, .category-name {
+        font-weight: 700;
+        color: var(--secondary-color);
+        margin-bottom: var(--spacing-xs);
+        font-size: 1.1rem;
+    }
+    
+    .expense-category {
+        font-size: 0.9rem;
+        color: #6c757d;
+        background: linear-gradient(135deg, #e9ecef, #f8f9fa);
+        padding: var(--spacing-xs) var(--spacing-sm);
+        border-radius: 16px;
+        display: inline-block;
+        font-weight: 500;
+        border: 1px solid #dee2e6;
+    }
+    
+    .expense-amount {
+        font-weight: 800;
+        color: var(--danger-color);
+        font-size: 1.2rem;
+        background: linear-gradient(135deg, var(--danger-color), #ec7063);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+    
+    .category-amount {
+        font-weight: 800;
+        font-size: 1.2rem;
+        background: linear-gradient(135deg, var(--success-color), #58d68d);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        color: var(--primary-color);
+        font-size: 1.1rem;
+    }
+    
+    .loading, .no-data {
+        text-align: center;
+        padding: var(--spacing-lg);
+        color: #6c757d;
+    }
+    
+    .loading i {
+        font-size: 2rem;
+        margin-bottom: 10px;
+        animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    .progress-bar {
+        width: 100%;
+        height: 8px;
+        background: #e9ecef;
+        border-radius: 4px;
+        overflow: hidden;
+        margin-top: 10px;
+    }
+    
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--success-color), var(--warning-color));
+        border-radius: 4px;
+        transition: width 0.3s ease;
+    }
+    
+    @media (max-width: 1200px) {
+        .metrics-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+        
+        .charts-grid {
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .dashboard-container {
+            padding: var(--spacing-md);
+        }
+        
+        .dashboard-header {
+            padding: var(--spacing-lg);
+        }
+        
+        .dashboard-header h1 {
+            font-size: 2rem;
+        }
+        
+        .dashboard-header p {
+            font-size: 1rem;
+        }
+        
+        .metrics-grid, .charts-grid, .quick-stats {
+            grid-template-columns: 1fr;
+            gap: var(--spacing-md);
+        }
+        
+        .metric-card, .chart-card, .stats-card {
+            padding: var(--spacing-lg);
+        }
+        
+        .chart-container {
+            height: 300px;
+        }
+        
+        .metric-value {
+            font-size: 2rem;
+        }
+        
+        .metric-label {
+            font-size: 0.9rem;
+        }
+        
+        .metric-icon {
+            width: 56px;
+            height: 56px;
+            font-size: 1.5rem;
+        }
+        
+        .section-title {
+            font-size: 1.5rem;
+        }
+        
+        .chart-title, .stats-title {
+            font-size: 1.2rem;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .dashboard-container {
+            padding: var(--spacing-sm);
+        }
+        
+        .dashboard-header {
+            padding: var(--spacing-md);
+            text-align: center;
+        }
+        
+        .dashboard-header h1 {
+            font-size: 1.75rem;
+            margin-bottom: var(--spacing-xs);
+        }
+        
+        .dashboard-header p {
+            font-size: 0.95rem;
+        }
+        
+        .metric-card {
+            padding: var(--spacing-md);
+        }
+        
+        .metric-value {
+            font-size: 1.75rem;
+        }
+        
+        .metric-label {
+            font-size: 0.85rem;
+        }
+        
+        .metric-icon {
+            width: 48px;
+            height: 48px;
+            font-size: 1.25rem;
+        }
+        
+        .chart-card {
+            padding: var(--spacing-md);
+        }
+        
+        .chart-container {
+            height: 250px;
+        }
+        
+        .chart-title, .stats-title {
+            font-size: 1.1rem;
+            margin-bottom: var(--spacing-md);
+        }
+        
+        .section-title {
+            font-size: 1.25rem;
+        }
+        
+        .progress-bar {
+            height: 6px;
+        }
+        
+        .stats-card {
+            padding: var(--spacing-md);
+        }
+        
+        .expense-name, .category-name {
+            font-size: 1rem;
+        }
+        
+        .expense-amount, .category-amount {
+            font-size: 1.1rem;
+        }
+    }
+    
+    @media (max-width: 360px) {
+        .dashboard-container {
+            padding: var(--spacing-xs);
+        }
+        
+        .dashboard-header {
+            padding: var(--spacing-sm);
+        }
+        
+        .dashboard-header h1 {
+            font-size: 1.5rem;
+        }
+        
+        .dashboard-header p {
+            font-size: 0.85rem;
+        }
+        
+        .metric-card, .chart-card, .stats-card {
+            padding: var(--spacing-sm);
+        }
+        
+        .metric-value {
+            font-size: 1.5rem;
+        }
+        
+        .metric-icon {
+            width: 40px;
+            height: 40px;
+            font-size: 1rem;
+        }
+        
+        .chart-container {
+            height: 200px;
+        }
+        
+        .section-title {
+            font-size: 1.1rem;
+        }
+        
+        .chart-title, .stats-title {
+            font-size: 1rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Header Section -->
+    <div class="dashboard-header">
+        <h1><i class="fas fa-chart-line"></i> Financial Dashboard</h1>
+        <p>Get a clear overview of your financial health and spending patterns</p>
+    </div>
+
+    <!-- Key Metrics Section -->
+    <section class="metrics-section">
+        <h2 class="section-title">
+            <i class="fas fa-chart-line"></i>
+            Financial Overview
+        </h2>
+        
+        <!-- Main Dashboard Layout -->
+        <div class="dashboard-main-layout">
+            <!-- Left Side: Key Metrics -->
+            <div class="metrics-container">
+                <div class="metrics-grid">
+                    <div class="metric-card budget">
+                        <div class="metric-header">
+                            <div class="metric-icon">
+                                <i class="fas fa-wallet"></i>
+                            </div>
+                        </div>
+                        <div class="metric-value" id="total-budget">Rp {{ total_allocated|floatformat:0|default:"0" }}</div>
+                        <div class="metric-label">Total Budget</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 100%;"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="metric-card spent">
+                        <div class="metric-header">
+                            <div class="metric-icon">
+                                <i class="fas fa-credit-card"></i>
+                            </div>
+                        </div>
+                        <div class="metric-value" id="total-spent">Rp {{ total_spent|floatformat:0|default:"0" }}</div>
+                        <div class="metric-label">Total Spent</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="spent-progress" data-width="{% widthratio total_spent total_allocated 100 %}"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="metric-card remaining">
+                        <div class="metric-header">
+                            <div class="metric-icon">
+                                <i class="fas fa-piggy-bank"></i>
+                            </div>
+                        </div>
+                        <div class="metric-value" id="remaining-budget">Rp {{ total_remaining|floatformat:0|default:"0" }}</div>
+                        <div class="metric-label">Remaining</div>
+                        <div class="progress-bar">
+                             <div class="progress-fill" id="remaining-progress" data-width="{% widthratio total_remaining total_allocated 100 %}"></div>
+                         </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Right Side: Budget Utilization Chart -->
+            <div class="utilization-container">
+                <div class="utilization-card">
+                    <div class="utilization-header">
+                        <h3 class="utilization-title">
+                            <i class="fas fa-chart-pie"></i>
+                            Budget Utilization
+                        </h3>
+                        <div class="utilization-percentage">{{ utilization_percentage|default:0 }}%</div>
+                    </div>
+                    <div class="utilization-chart">
+                        <canvas id="utilizationChart"></canvas>
+                    </div>
+                    <div class="utilization-legend">
+                        <div class="legend-item spent">
+                            <span class="legend-color"></span>
+                            <span class="legend-label">Spent ({{ total_spent|floatformat:0 }})</span>
+                        </div>
+                        <div class="legend-item remaining">
+                            <span class="legend-color"></span>
+                            <span class="legend-label">Remaining ({{ total_remaining|floatformat:0 }})</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Analytics Section -->
+    <section class="charts-section">
+        <h2 class="section-title">
+            <i class="fas fa-chart-pie"></i>
+            Budget Analysis
+        </h2>
+        <div class="charts-grid">
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3 class="chart-title">Category Distribution</h3>
+                    <p class="chart-description">See how your budget is allocated across categories</p>
+                </div>
+                <div class="chart-container">
+                    <canvas id="categoryChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3 class="chart-title">Monthly Trend</h3>
+                    <p class="chart-description">Track your spending patterns over time</p>
+                </div>
+                <div class="chart-container">
+                    <canvas id="trendChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Quick Stats -->
+    <div class="charts-section">
+        <h2 class="section-title">
+            <i class="fas fa-tachometer-alt"></i>
+            Quick Insights
+        </h2>
+        
+        <div class="stats-grid">
+            <div class="stats-card recent-expenses">
+                <div class="stats-header">
+                    <h4 class="stats-title">
+                        <i class="fas fa-clock"></i>
+                        Recent Expenses
+                    </h4>
+                    <span class="stats-count">{{ recent_expenses|length }} items</span>
+                </div>
+                <div class="stats-content" id="recent-expenses">
+                    {% if recent_expenses %}
+                        {% for expense in recent_expenses %}
+                        <div class="expense-item">
+                            <div class="expense-info">
+                                <div class="expense-name">{{ expense.description|default:"Expense" }}</div>
+                                <div class="expense-category">{{ expense.expense_type.name|default:"General" }}</div>
+                                <div class="expense-date">{{ expense.date|date:"M d" }}</div>
+                            </div>
+                            <div class="expense-amount">${{ expense.amount|floatformat:2 }}</div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="no-data">
+                            <i class="fas fa-receipt"></i>
+                            <p>No recent expenses found</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="stats-card top-categories">
+                <div class="stats-header">
+                    <h4 class="stats-title">
+                        <i class="fas fa-tags"></i>
+                        Top Categories
+                    </h4>
+                    <span class="stats-count">{{ top_categories|length }} categories</span>
+                </div>
+                <div class="stats-content" id="top-categories">
+                    {% if top_categories %}
+                        {% for category in top_categories %}
+                        <div class="category-item">
+                            <div class="category-info">
+                                <div class="category-name">{{ category.name }}</div>
+                                <div class="category-progress">
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" data-width="{% widthratio category.total_spent total_spent 100 %}"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="category-amount">${{ category.total_spent|floatformat:2|default:"0.00" }}</div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="no-data">
+                            <i class="fas fa-folder-open"></i>
+                            <p>No category data available</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript for Dashboard -->
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- Dashboard Data -->
+<script id="dashboard-data" type="application/json">
+{
+    "totalAllocated": {{ total_allocated|default:0 }},
+    "totalSpent": {{ total_spent|default:0 }},
+    "totalRemaining": {{ total_remaining|default:0 }},
+    "utilizationPercentage": {{ utilization_percentage|default:0 }},
+    "topCategories": {{ top_categories|safe }},
+    "recentExpenses": {{ recent_expenses|safe }}
+}
+</script>
+
+<script>
+// Initialize progress bars with animation
+function initializeProgressBars() {
+    const progressFills = document.querySelectorAll('.progress-fill[data-width]');
+    progressFills.forEach((fill, index) => {
+        const width = fill.getAttribute('data-width');
+        if (width) {
+            // Set initial width to 0 for animation
+            fill.style.width = '0%';
+            
+            // Animate to target width with delay
+            setTimeout(() => {
+                fill.style.width = width + '%';
+                fill.classList.add('animate');
+            }, index * 200 + 500); // Staggered animation
+        }
+    });
+}
+
+// Add entrance animations for metric cards
+function initializeCardAnimations() {
+    const cards = document.querySelectorAll('.metric-card');
+    cards.forEach((card, index) => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(30px)';
+        
+        setTimeout(() => {
+            card.style.transition = 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)';
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
+        }, index * 150 + 200);
+    });
+}
+
+// Initialize Utilization Chart
+        function initializeUtilizationChart() {
+            const canvas = document.getElementById('utilizationChart');
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
+            const totalSpent = parseFloat('{{ total_spent|default:0 }}') || 0;
+            const totalRemaining = parseFloat('{{ total_remaining|default:0 }}') || 0;
+            const utilizationPercentage = parseFloat('{{ utilization_percentage|default:0 }}') || 0;
+    
+    // Create gradient for the chart
+    const gradient1 = ctx.createLinearGradient(0, 0, 0, 200);
+    gradient1.addColorStop(0, '#ff6b6b');
+    gradient1.addColorStop(1, '#ff5252');
+    
+    const gradient2 = ctx.createLinearGradient(0, 0, 0, 200);
+    gradient2.addColorStop(0, '#4ecdc4');
+    gradient2.addColorStop(1, '#26a69a');
+    
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Spent', 'Remaining'],
+            datasets: [{
+                data: [totalSpent, totalRemaining],
+                backgroundColor: [gradient1, gradient2],
+                borderWidth: 0,
+                cutout: '70%'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0,0,0,0.8)',
+                    titleColor: 'white',
+                    bodyColor: 'white',
+                    borderColor: 'rgba(255,255,255,0.2)',
+                    borderWidth: 1,
+                    cornerRadius: 8,
+                    callbacks: {
+                        label: function(context) {
+                            const value = context.parsed;
+                            const total = totalSpent + totalRemaining;
+                            const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                            return context.label + ': Rp ' + value.toLocaleString() + ' (' + percentage + '%)';
+                        }
+                    }
+                }
+            },
+            animation: {
+                animateRotate: true,
+                duration: 1500,
+                easing: 'easeOutQuart'
+            }
+        }
+    });
+}
+
+// Initialize Dashboard
+document.addEventListener('DOMContentLoaded', function() {
+    initializeDashboard();
+    initializeProgressBars();
+    initializeCardAnimations();
+    initializeUtilizationChart();
+});
+
+function initializeDashboard() {
+    try {
+        // Get data from JSON script
+        const dashboardData = JSON.parse(document.getElementById('dashboard-data').textContent);
+        
+        // Update progress bars with server data
+        updateProgressBars(dashboardData);
+        
+        // Update metrics
+        updateMetrics(dashboardData);
+        
+        // Initialize charts
+        initializeCharts(dashboardData);
+        
+        
+    } catch (error) {
+        console.error('Error initializing dashboard:', error);
+        // Fallback with default values
+        updateProgressBars({
+            totalAllocated: 0,
+            totalSpent: 0,
+            totalRemaining: 0,
+            utilizationPercentage: 0
+        });
+    }
+}
+
+function updateProgressBars(data) {
+    // Update all progress bars
+    const budgetProgress = document.querySelector('.metric-card.budget .progress-fill');
+    const spentProgress = document.getElementById('spent-progress');
+    const remainingProgress = document.getElementById('remaining-progress');
+    const utilizationProgress = document.getElementById('utilization-progress');
+    
+    if (budgetProgress) {
+        budgetProgress.style.width = '100%';
+    }
+    
+    if (spentProgress && data.utilizationPercentage !== undefined) {
+        spentProgress.style.width = data.utilizationPercentage + '%';
+    }
+    
+    if (remainingProgress && data.totalAllocated > 0) {
+        const remainingPercentage = (data.totalRemaining / data.totalAllocated) * 100;
+        remainingProgress.style.width = Math.max(0, Math.min(100, remainingPercentage)) + '%';
+    }
+    
+    if (utilizationProgress && data.utilizationPercentage !== undefined) {
+        utilizationProgress.style.width = data.utilizationPercentage + '%';
+    }
+}
+
+function updateMetrics(data) {
+    // Update metric values dynamically
+    const totalBudgetEl = document.getElementById('total-budget');
+    const totalSpentEl = document.getElementById('total-spent');
+    const remainingBudgetEl = document.getElementById('remaining-budget');
+    const utilizationEl = document.getElementById('utilization-rate');
+    
+    if (totalBudgetEl) totalBudgetEl.textContent = formatCurrency(data.totalAllocated || 0);
+    if (totalSpentEl) totalSpentEl.textContent = formatCurrency(data.totalSpent || 0);
+    if (remainingBudgetEl) remainingBudgetEl.textContent = formatCurrency(data.totalRemaining || 0);
+    if (utilizationEl) utilizationEl.textContent = (data.utilizationPercentage || 0) + '%';
+}
+
+
+
+let categoryChart;
+        
+function initializeCharts(data) {
+    // Category Chart
+    const categoryCtx = document.getElementById('categoryChart');
+    if (categoryCtx) {
+        const categoryData = data.topCategories || [];
+        const categoryLabels = categoryData.map(item => item.name || 'Category');
+        const categoryValues = categoryData.map(item => parseFloat(item.total_spent) || parseFloat(item.total) || 0);
+        
+        categoryChart = new Chart(categoryCtx, {
+            type: 'doughnut',
+            data: {
+                labels: categoryLabels.length > 0 ? categoryLabels : ['Food', 'Transport', 'Entertainment', 'Bills', 'Others'],
+                datasets: [{
+                    data: categoryValues.length > 0 ? categoryValues : [0, 0, 0, 0, 0],
+                    backgroundColor: [
+                        '#4facfe',
+                        '#fa709a',
+                        '#a8edea',
+                        '#667eea',
+                        '#ffeaa7',
+                        '#fd79a8',
+                        '#fdcb6e'
+                    ],
+                    borderWidth: 0,
+                    hoverBorderWidth: 3,
+                    hoverBorderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 20,
+                            usePointStyle: true,
+                            font: {
+                                size: 12
+                            }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.label + ': ' + formatCurrency(context.parsed);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+}
+
+function updateCharts(data) {
+    // Update chart data when new data is received
+    if (data && data.category_distribution) {
+        // Update category chart if needed
+    }
+}
+
+function formatCurrency(amount) {
+    return new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        minimumFractionDigits: 0
+    }).format(amount || 0);
+}
+
+
+
+function formatDate(dateString) {
+    return new Date(dateString).toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'short'
+    });
+}
+</script>
+{% endblock %}

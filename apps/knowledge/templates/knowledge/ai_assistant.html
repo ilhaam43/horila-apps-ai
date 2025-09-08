@@ -1,0 +1,527 @@
+{% extends 'knowledge/base_knowledge.html' %}
+{% load static %}
+
+{% block title %}AI Assistant - Knowledge Base{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/knowledge.css' %}">
+<style>
+.ai-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 3rem 0;
+    margin-bottom: 2rem;
+}
+
+.assistant-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.assistant-card {
+    background: white;
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    overflow: hidden;
+    position: relative;
+}
+
+.assistant-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.assistant-card-header {
+    padding: 1.5rem;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-bottom: 1px solid #dee2e6;
+}
+
+.assistant-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: white;
+    margin-bottom: 1rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.assistant-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+}
+
+.assistant-description {
+    color: #6c757d;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.assistant-card-body {
+    padding: 1.5rem;
+}
+
+.assistant-features {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.assistant-features li {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #f8f9fa;
+    display: flex;
+    align-items: center;
+}
+
+.assistant-features li:last-child {
+    border-bottom: none;
+}
+
+.assistant-features i {
+    color: #28a745;
+    margin-right: 0.5rem;
+    width: 16px;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: white;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.stat-number {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #667eea;
+    display: block;
+}
+
+.stat-label {
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+.job-list {
+    background: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.job-item {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #f8f9fa;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.job-item:last-child {
+    border-bottom: none;
+}
+
+.job-info {
+    flex: 1;
+}
+
+.job-title {
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 0.25rem;
+}
+
+.job-meta {
+    font-size: 0.8rem;
+    color: #6c757d;
+}
+
+.job-status {
+    padding: 0.25rem 0.75rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-completed {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status-processing {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.status-failed {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.status-pending {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+.chat-interface {
+    background: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    height: 400px;
+    display: flex;
+    flex-direction: column;
+}
+
+.chat-header {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #f8f9fa;
+    background: #f8f9fa;
+    border-radius: 0.5rem 0.5rem 0 0;
+}
+
+.chat-messages {
+    flex: 1;
+    padding: 1rem;
+    overflow-y: auto;
+}
+
+.chat-input {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid #f8f9fa;
+    background: #f8f9fa;
+    border-radius: 0 0 0.5rem 0.5rem;
+}
+
+.message {
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: flex-start;
+}
+
+.message.user {
+    justify-content: flex-end;
+}
+
+.message-content {
+    max-width: 70%;
+    padding: 0.75rem 1rem;
+    border-radius: 1rem;
+    background: #e9ecef;
+    color: #2c3e50;
+}
+
+.message.user .message-content {
+    background: #667eea;
+    color: white;
+}
+
+.message-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #667eea;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    margin-right: 0.5rem;
+}
+
+.message.user .message-avatar {
+    order: 2;
+    margin-right: 0;
+    margin-left: 0.5rem;
+    background: #28a745;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'knowledge:dashboard' %}">Knowledge Base</a></li>
+            <li class="breadcrumb-item active">AI Assistant</li>
+        </ol>
+    </nav>
+
+    <!-- AI Header -->
+    <div class="ai-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="assistant-icon mr-3">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        <div>
+                            <h1 class="mb-1">AI Assistant</h1>
+                            <p class="mb-0 opacity-75">Intelligent document processing and knowledge extraction</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 text-md-right">
+                    <button class="btn btn-light" data-toggle="modal" data-target="#chatModal">
+                        <i class="fas fa-comments mr-1"></i> Start Chat
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Statistics -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <span class="stat-number">{{ total_jobs }}</span>
+                <div class="stat-label">Total Jobs</div>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number">{{ successful_jobs }}</span>
+                <div class="stat-label">Successful Jobs</div>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number">{{ success_rate|floatformat:1 }}%</span>
+                <div class="stat-label">Success Rate</div>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number">{{ assistants.count }}</span>
+                <div class="stat-label">Available Assistants</div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- AI Assistants -->
+            <div class="col-lg-8">
+                <h3 class="mb-3">Available AI Assistants</h3>
+                {% if assistants %}
+                <div class="assistant-grid">
+                    {% for assistant in assistants %}
+                    <div class="assistant-card">
+                        <div class="assistant-card-header">
+                            <div class="assistant-icon">
+                                <i class="{{ assistant.icon|default:'fas fa-robot' }}"></i>
+                            </div>
+                            <div class="assistant-title">{{ assistant.name }}</div>
+                            <div class="assistant-description">
+                                {{ assistant.description|truncatewords:20 }}
+                            </div>
+                        </div>
+                        <div class="assistant-card-body">
+                            <ul class="assistant-features">
+                                {% if assistant.can_process_documents %}
+                                <li><i class="fas fa-check"></i> Document Processing</li>
+                                {% endif %}
+                                {% if assistant.can_extract_keywords %}
+                                <li><i class="fas fa-check"></i> Keyword Extraction</li>
+                                {% endif %}
+                                {% if assistant.can_generate_summary %}
+                                <li><i class="fas fa-check"></i> Summary Generation</li>
+                                {% endif %}
+                                {% if assistant.can_answer_questions %}
+                                <li><i class="fas fa-check"></i> Question Answering</li>
+                                {% endif %}
+                            </ul>
+                            <div class="mt-3">
+                                <button class="btn btn-primary btn-sm btn-block" onclick="useAssistant('{{ assistant.id }}')">
+                                    <i class="fas fa-play mr-1"></i> Use Assistant
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-robot fa-4x text-muted mb-3"></i>
+                    <h4>No AI Assistants Available</h4>
+                    <p class="text-muted">AI assistants are not configured yet. Please contact your administrator.</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Recent Jobs -->
+            <div class="col-lg-4">
+                <h3 class="mb-3">Recent Jobs</h3>
+                {% if recent_jobs %}
+                <div class="job-list">
+                    {% for job in recent_jobs %}
+                    <div class="job-item">
+                        <div class="job-info">
+                            <div class="job-title">{{ job.job_type|title }} Job</div>
+                            <div class="job-meta">
+                                <i class="fas fa-calendar mr-1"></i> {{ job.created_at|date:'M d, Y H:i' }}
+                                {% if job.document %}
+                                <br><i class="fas fa-file mr-1"></i> {{ job.document.title|truncatechars:30 }}
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="job-status status-{{ job.status }}">
+                            {{ job.get_status_display }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="text-center mt-3">
+                    <a href="#" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-history mr-1"></i> View All Jobs
+                    </a>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-clock fa-2x text-muted mb-2"></i>
+                    <p class="text-muted">No recent jobs</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chat Modal -->
+<div class="modal fade" id="chatModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-robot mr-2"></i> AI Assistant Chat
+                </h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="chat-interface">
+                    <div class="chat-header">
+                        <div class="d-flex align-items-center">
+                            <div class="assistant-icon" style="width: 32px; height: 32px; font-size: 1rem; margin-right: 0.5rem;">
+                                <i class="fas fa-robot"></i>
+                            </div>
+                            <div>
+                                <div class="font-weight-bold">Knowledge AI</div>
+                                <small class="text-muted">Ready to help</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="message">
+                            <div class="message-avatar">
+                                <i class="fas fa-robot"></i>
+                            </div>
+                            <div class="message-content">
+                                Hello! I'm your AI assistant. I can help you find information, process documents, and answer questions about your knowledge base. How can I assist you today?
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chat-input">
+                        <form id="chatForm">
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="chatInput" placeholder="Type your message..." required>
+                                <div class="input-group-append">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-paper-plane"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function useAssistant(assistantId) {
+    // Show chat modal with selected assistant
+    $('#chatModal').modal('show');
+    
+    // Add message about selected assistant
+    const messagesContainer = document.getElementById('chatMessages');
+    const message = document.createElement('div');
+    message.className = 'message';
+    message.innerHTML = `
+        <div class="message-avatar">
+            <i class="fas fa-robot"></i>
+        </div>
+        <div class="message-content">
+            I've activated the AI assistant for you. What would you like me to help you with?
+        </div>
+    `;
+    messagesContainer.appendChild(message);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+
+// Chat functionality
+document.getElementById('chatForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const input = document.getElementById('chatInput');
+    const message = input.value.trim();
+    
+    if (!message) return;
+    
+    // Add user message
+    addMessage(message, true);
+    input.value = '';
+    
+    // Simulate AI response (replace with actual API call)
+    setTimeout(() => {
+        const responses = [
+            "I understand your question. Let me search through the knowledge base for relevant information.",
+            "Based on the documents in your knowledge base, here's what I found...",
+            "That's an interesting question. Let me analyze the available data.",
+            "I can help you with that. Here are some relevant documents and information."
+        ];
+        const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+        addMessage(randomResponse, false);
+    }, 1000);
+});
+
+function addMessage(content, isUser) {
+    const messagesContainer = document.getElementById('chatMessages');
+    const message = document.createElement('div');
+    message.className = `message ${isUser ? 'user' : ''}`;
+    
+    const avatar = isUser ? 
+        '<div class="message-avatar"><i class="fas fa-user"></i></div>' :
+        '<div class="message-avatar"><i class="fas fa-robot"></i></div>';
+    
+    message.innerHTML = `
+        ${avatar}
+        <div class="message-content">${content}</div>
+    `;
+    
+    messagesContainer.appendChild(message);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+
+// Auto-focus chat input when modal opens
+$('#chatModal').on('shown.bs.modal', function() {
+    document.getElementById('chatInput').focus();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,345 @@
+{% extends "budget/base_budget.html" %}
+{% load static %}
+{% load i18n %}
+{% load budget_filters %}
+
+{% block title %}{% trans "Budget Categories" %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2>{% trans "Budget Categories" %}</h2>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item"><a href="{% url 'budget:dashboard' %}">{% trans "Budget" %}</a></li>
+                            <li class="breadcrumb-item active">{% trans "Categories" %}</li>
+                        </ol>
+                    </nav>
+                </div>
+                <div>
+                    {% if perms.budget.add_budgetcategory %}
+                    <a href="{% url 'budget:category_create' %}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> {% trans "Add Category" %}
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Filters -->
+            <div class="card mb-4">
+                <!-- Filter Form -->
+                <div class="card-body border-bottom">
+                    <form method="get" id="category-filter-form">
+                        <!-- Main Filters Row -->
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label text-muted small mb-1">{% trans "Search" %}</label>
+                                <input type="text" name="search" class="form-control form-control-sm" placeholder="{% trans 'Search categories...' %}" value="{{ request.GET.search }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label text-muted small mb-1">{% trans "Status" %}</label>
+                                <select name="status" class="form-select form-select-sm">
+                                    <option value="">{% trans "All Status" %}</option>
+                                    <option value="active" {% if request.GET.status == 'active' %}selected{% endif %}>{% trans "Active" %}</option>
+                                    <option value="inactive" {% if request.GET.status == 'inactive' %}selected{% endif %}>{% trans "Inactive" %}</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label text-muted small mb-1">{% trans "Sort by" %}</label>
+                                <select name="sort" class="form-select form-select-sm">
+                                    <option value="name" {% if request.GET.sort == 'name' %}selected{% endif %}>{% trans "Name (A-Z)" %}</option>
+                                    <option value="-name" {% if request.GET.sort == '-name' %}selected{% endif %}>{% trans "Name (Z-A)" %}</option>
+                                    <option value="created_at" {% if request.GET.sort == 'created_at' %}selected{% endif %}>{% trans "Oldest First" %}</option>
+                                    <option value="-created_at" {% if request.GET.sort == '-created_at' %}selected{% endif %}>{% trans "Newest First" %}</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <!-- Action Buttons Row -->
+                        <div class="row g-3">
+                            <div class="col-12 text-end">
+                                <button type="submit" class="btn btn-primary btn-sm me-2">
+                                    <i class="fas fa-filter"></i> {% trans "Apply Filters" %}
+                                </button>
+                                <a href="{% url 'budget:category_list' %}" class="btn btn-outline-secondary btn-sm">
+                                    <i class="fas fa-times"></i> {% trans "Clear All" %}
+                                </a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="card-body p-0">
+
+            <!-- Categories List -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">
+                            {% trans "Categories" %}
+                            {% if categories %}
+                            <span class="badge bg-secondary">{{ categories|length }}</span>
+                            {% endif %}
+                        </h5>
+                        <div class="btn-group" role="group">
+                            <input type="radio" class="btn-check" name="view-mode" id="card-view" autocomplete="off" checked>
+                            <label class="btn btn-outline-secondary btn-sm" for="card-view">
+                                <i class="fas fa-th-large"></i>
+                            </label>
+                            <input type="radio" class="btn-check" name="view-mode" id="table-view" autocomplete="off">
+                            <label class="btn btn-outline-secondary btn-sm" for="table-view">
+                                <i class="fas fa-list"></i>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if categories %}
+                    
+                    <!-- Card View -->
+                    <div id="cardView" class="row">
+                        {% for category in categories %}
+                        <div class="col-lg-4 col-md-6 mb-4">
+                            <div class="card h-100 category-card">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start mb-3">
+                                        <div class="flex-grow-1">
+                                            <h6 class="card-title mb-1">{{ category.name }}</h6>
+                                            {% if category.description %}
+                                            <p class="card-text text-muted small">{{ category.description|truncatechars:80 }}</p>
+                                            {% endif %}
+                                        </div>
+                                        <div class="dropdown">
+                                            <button class="btn btn-sm btn-outline-secondary" type="button" 
+                                                    data-bs-toggle="dropdown" aria-expanded="false">
+                                                <i class="fas fa-ellipsis-v"></i>
+                                            </button>
+                                            <ul class="dropdown-menu">
+                                                {% if perms.budget.change_budgetcategory %}
+                                                <li>
+                                                    <a class="dropdown-item" href="{% url 'budget:category_edit' category.pk %}">
+                                                        <i class="fas fa-edit"></i> {% trans "Edit" %}
+                                                    </a>
+                                                </li>
+                                                {% endif %}
+                                                {% if perms.budget.delete_budgetcategory %}
+                                                <li>
+                                                    <a class="dropdown-item text-danger" href="{% url 'budget:category_delete' category.pk %}">
+                                                        <i class="fas fa-trash"></i> {% trans "Delete" %}
+                                                    </a>
+                                                </li>
+                                                {% endif %}
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row text-center">
+                                        <div class="col-6">
+                                            <div class="border-end">
+                                                <div class="h6 mb-0 text-primary">{{ category.budget_plans_count|default:0 }}</div>
+                                                <small class="text-muted">{% trans "Budget Plans" %}</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-6">
+                                            <div class="h6 mb-0 text-success">{{ category.total_allocated|default:0|currency_format:0 }}</div>
+                                            <small class="text-muted">{% trans "Total Allocated" %}</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="card-footer bg-transparent">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="badge {% if category.is_active %}bg-success{% else %}bg-secondary{% endif %}">
+                                            {% if category.is_active %}{% trans "Active" %}{% else %}{% trans "Inactive" %}{% endif %}
+                                        </span>
+                                        <small class="text-muted">{{ category.created_at|date:"M d, Y" }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Table View -->
+                    <div id="tableView" class="d-none">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>{% trans "Name" %}</th>
+                                        <th>{% trans "Description" %}</th>
+                                        <th class="text-center">{% trans "Budget Plans" %}</th>
+                                        <th class="text-center">{% trans "Total Allocated" %}</th>
+                                        <th class="text-center">{% trans "Status" %}</th>
+                                        <th class="text-center">{% trans "Created" %}</th>
+                                        <th class="text-center">{% trans "Actions" %}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for category in categories %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ category.name }}</strong>
+                                        </td>
+                                        <td>
+                                            {% if category.description %}
+                                            <span class="text-muted">{{ category.description|truncatechars:50 }}</span>
+                                            {% else %}
+                                            <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-primary">{{ category.budget_plans_count|default:0 }}</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <strong class="text-success">{{ category.total_allocated|default:0|currency_format }}</strong>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge {% if category.is_active %}bg-success{% else %}bg-secondary{% endif %}">
+                                                {% if category.is_active %}{% trans "Active" %}{% else %}{% trans "Inactive" %}{% endif %}
+                                            </span>
+                                        </td>
+                                        <td class="text-center">
+                                            <small class="text-muted">{{ category.created_at|date:"M d, Y" }}</small>
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="btn-group" role="group">
+                                                {% if perms.budget.change_budgetcategory %}
+                                                <a href="{% url 'budget:category_edit' category.pk %}" 
+                                                   class="btn btn-sm btn-outline-primary" title="{% trans 'Edit' %}">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                                {% endif %}
+                                                {% if perms.budget.delete_budgetcategory %}
+                                                <a href="{% url 'budget:category_delete' category.pk %}" 
+                                                   class="btn btn-sm btn-outline-danger" title="{% trans 'Delete' %}">
+                                                    <i class="fas fa-trash"></i>
+                                                </a>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    {% else %}
+                    <!-- Empty State -->
+                    <div class="text-center py-5">
+                        <div class="mb-4">
+                            <i class="fas fa-tags fa-4x text-muted"></i>
+                        </div>
+                        <h5 class="text-muted">{% trans "No Categories Found" %}</h5>
+                        <p class="text-muted mb-4">
+                            {% if request.GET.search or request.GET.status %}
+                                {% trans "No categories match your current filters. Try adjusting your search criteria." %}
+                            {% else %}
+                                {% trans "You haven't created any budget categories yet. Categories help organize your budget plans." %}
+                            {% endif %}
+                        </p>
+                        {% if perms.budget.add_budgetcategory %}
+                        <a href="{% url 'budget:category_create' %}" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> {% trans "Create First Category" %}
+                        </a>
+                        {% endif %}
+                        {% if request.GET.search or request.GET.status %}
+                        <a href="{% url 'budget:category_list' %}" class="btn btn-outline-secondary ms-2">
+                            <i class="fas fa-times"></i> {% trans "Clear Filters" %}
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            {% if is_paginated %}
+            <nav aria-label="Categories pagination" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.sort %}sort={{ request.GET.sort }}&{% endif %}page=1">
+                            <i class="fas fa-angle-double-left"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.sort %}sort={{ request.GET.sort }}&{% endif %}page={{ page_obj.previous_page_number }}">
+                            <i class="fas fa-angle-left"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.sort %}sort={{ request.GET.sort }}&{% endif %}page={{ num }}">{{ num }}</a>
+                    </li>
+                    {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.sort %}sort={{ request.GET.sort }}&{% endif %}page={{ page_obj.next_page_number }}">
+                            <i class="fas fa-angle-right"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.sort %}sort={{ request.GET.sort }}&{% endif %}page={{ page_obj.paginator.num_pages }}">
+                            <i class="fas fa-angle-double-right"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // View Mode Toggle
+    $('input[name="view-mode"]').on('change', function() {
+        if ($(this).attr('id') === 'card-view') {
+            $('#cardView').removeClass('d-none');
+            $('#tableView').addClass('d-none');
+        } else {
+            $('#cardView').addClass('d-none');
+            $('#tableView').removeClass('d-none');
+        }
+    });
+
+    // Auto-submit form on filter change
+    $('#status, #sort').on('change', function() {
+        $(this).closest('form').submit();
+    });
+
+    // Search on Enter
+    $('#search').on('keypress', function(e) {
+        if (e.which === 13) {
+            $(this).closest('form').submit();
+        }
+    });
+
+    // Category card hover effects
+    $('.category-card').hover(
+        function() {
+            $(this).addClass('shadow-sm');
+        },
+        function() {
+            $(this).removeClass('shadow-sm');
+        }
+    );
+});
+</script>
+{% endblock %}

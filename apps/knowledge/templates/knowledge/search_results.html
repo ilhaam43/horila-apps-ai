@@ -1,0 +1,478 @@
+{% extends 'knowledge/base_knowledge.html' %}
+{% load static %}
+
+{% block title %}
+Search Results - Knowledge Base
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.search-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2rem 0;
+    margin-bottom: 2rem;
+}
+
+.search-stats {
+    background: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 2rem;
+}
+
+.search-result-item {
+    background: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+}
+
+.search-result-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+}
+
+.result-title {
+    color: #2c3e50;
+    font-weight: 600;
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+    text-decoration: none;
+}
+
+.result-title:hover {
+    color: #667eea;
+    text-decoration: none;
+}
+
+.result-snippet {
+    color: #6c757d;
+    margin-bottom: 1rem;
+    line-height: 1.6;
+}
+
+.result-meta {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+
+.result-category {
+    background: #e9ecef;
+    color: #495057;
+    padding: 0.25rem 0.75rem;
+    border-radius: 15px;
+    font-size: 0.8rem;
+}
+
+.result-type {
+    background: #667eea;
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 15px;
+    font-size: 0.8rem;
+}
+
+.search-filters {
+    background: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 2rem;
+}
+
+.filter-section {
+    margin-bottom: 1rem;
+}
+
+.filter-section:last-child {
+    margin-bottom: 0;
+}
+
+.filter-label {
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+.no-results {
+    text-align: center;
+    padding: 3rem;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.no-results i {
+    font-size: 4rem;
+    color: #e9ecef;
+    margin-bottom: 1rem;
+}
+
+.pagination-wrapper {
+    display: flex;
+    justify-content: center;
+    margin-top: 2rem;
+}
+
+.breadcrumb {
+    background: transparent;
+    padding: 0;
+    margin-bottom: 1rem;
+}
+
+.breadcrumb-item a {
+    color: #667eea;
+    text-decoration: none;
+}
+
+.breadcrumb-item.active {
+    color: #6c757d;
+}
+
+.highlight {
+    background-color: #fff3cd;
+    padding: 0.1rem 0.2rem;
+    border-radius: 3px;
+}
+
+.search-form {
+    background: rgba(255,255,255,0.1);
+    border-radius: 10px;
+    padding: 1rem;
+}
+
+.search-input {
+    border: 2px solid rgba(255,255,255,0.3);
+    border-radius: 25px;
+    padding: 0.75rem 1.5rem;
+    background: rgba(255,255,255,0.9);
+    color: #2c3e50;
+}
+
+.search-input:focus {
+    border-color: rgba(255,255,255,0.8);
+    box-shadow: 0 0 0 0.2rem rgba(255,255,255,0.25);
+    background: white;
+}
+
+.btn-search {
+    background: rgba(255,255,255,0.2);
+    border: 2px solid rgba(255,255,255,0.3);
+    color: white;
+    border-radius: 25px;
+    padding: 0.75rem 2rem;
+    font-weight: 600;
+}
+
+.btn-search:hover {
+    background: rgba(255,255,255,0.3);
+    border-color: rgba(255,255,255,0.5);
+    color: white;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'knowledge:dashboard' %}">Knowledge Base</a></li>
+            <li class="breadcrumb-item active">Search Results</li>
+        </ol>
+    </nav>
+
+    <!-- Search Header -->
+    <div class="search-header">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-8 mx-auto">
+                    <h1 class="text-center mb-4">
+                        <i class="fas fa-search mr-2"></i>
+                        Search Knowledge Base
+                    </h1>
+                    
+                    <!-- Search Form -->
+                    <form method="get" class="search-form">
+                        <div class="input-group">
+                            <input type="text" 
+                                   name="q" 
+                                   value="{{ request.GET.q }}" 
+                                   class="form-control search-input" 
+                                   placeholder="Search documents, categories, or content..."
+                                   required>
+                            <div class="input-group-append">
+                                <button type="submit" class="btn btn-search">
+                                    <i class="fas fa-search mr-1"></i> Search
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Hidden filters -->
+                        {% if request.GET.category %}
+                        <input type="hidden" name="category" value="{{ request.GET.category }}">
+                        {% endif %}
+                        {% if request.GET.type %}
+                        <input type="hidden" name="type" value="{{ request.GET.type }}">
+                        {% endif %}
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="row">
+            <!-- Filters Sidebar -->
+            <div class="col-lg-3">
+                <div class="search-filters">
+                    <h5 class="mb-3">
+                        <i class="fas fa-filter mr-2"></i>
+                        Filters
+                    </h5>
+                    
+                    <form method="get">
+                        <input type="hidden" name="q" value="{{ request.GET.q }}">
+                        
+                        <!-- Category Filter -->
+                        <div class="filter-section">
+                            <label class="filter-label">Category</label>
+                            <select name="category" class="form-control form-control-sm" onchange="this.form.submit()">
+                                <option value="">All Categories</option>
+                                {% for category in categories %}
+                                <option value="{{ category.id }}" 
+                                        {% if request.GET.category == category.id|stringformat:'s' %}selected{% endif %}>
+                                    {{ category.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <!-- Document Type Filter -->
+                        <div class="filter-section">
+                            <label class="filter-label">Document Type</label>
+                            <select name="type" class="form-control form-control-sm" onchange="this.form.submit()">
+                                <option value="">All Types</option>
+                                {% for type_choice in document_types %}
+                                <option value="{{ type_choice.0 }}" 
+                                        {% if request.GET.type == type_choice.0 %}selected{% endif %}>
+                                    {{ type_choice.1 }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <!-- Clear Filters -->
+                        {% if request.GET.category or request.GET.type %}
+                        <div class="filter-section">
+                            <a href="{% url 'knowledge:document_search' %}?q={{ request.GET.q }}" 
+                               class="btn btn-outline-secondary btn-sm btn-block">
+                                <i class="fas fa-times mr-1"></i> Clear Filters
+                            </a>
+                        </div>
+                        {% endif %}
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Search Results -->
+            <div class="col-lg-9">
+                <!-- Search Statistics -->
+                {% if request.GET.q %}
+                <div class="search-stats">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h5 class="mb-0">
+                                {% if documents %}
+                                Found {{ documents|length }} result{{ documents|length|pluralize }} for "<strong>{{ request.GET.q }}</strong>"
+                                {% else %}
+                                No results found for "<strong>{{ request.GET.q }}</strong>"
+                                {% endif %}
+                            </h5>
+                            {% if total_results %}
+                            <small class="text-muted">Showing {{ documents|length }} of {{ total_results }} total results</small>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4 text-md-right">
+                            <small class="text-muted">
+                                Search completed in {{ search_time|default:'0.1' }}s
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Results List -->
+                {% if documents %}
+                    {% for document in documents %}
+                    <div class="search-result-item">
+                        <a href="{% url 'knowledge:document_detail' document.id %}" class="result-title">
+                            {{ document.title }}
+                        </a>
+                        
+                        {% if document.description %}
+                        <div class="result-snippet">
+                            {{ document.description|truncatewords:30 }}
+                        </div>
+                        {% endif %}
+                        
+                        <div class="result-meta">
+                            {% if document.category %}
+                            <span class="result-category">
+                                <i class="{{ document.category.icon|default:'fas fa-folder' }} mr-1"></i>
+                                {{ document.category.name }}
+                            </span>
+                            {% endif %}
+                            
+                            <span class="result-type">
+                                {{ document.get_document_type_display }}
+                            </span>
+                            
+                            <span>
+                                <i class="fas fa-user mr-1"></i>
+                                {{ document.created_by.get_full_name|default:document.created_by.username }}
+                            </span>
+                            
+                            <span>
+                                <i class="fas fa-calendar mr-1"></i>
+                                {{ document.created_at|date:'M d, Y' }}
+                            </span>
+                            
+                            {% if document.view_count %}
+                            <span>
+                                <i class="fas fa-eye mr-1"></i>
+                                {{ document.view_count }} view{{ document.view_count|pluralize }}
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                    
+                    <!-- Pagination -->
+                    {% if is_paginated %}
+                    <div class="pagination-wrapper">
+                        <nav aria-label="Search results pagination">
+                            <ul class="pagination">
+                                {% if page_obj.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?q={{ request.GET.q }}&category={{ request.GET.category }}&type={{ request.GET.type }}&page={{ page_obj.previous_page_number }}">
+                                        <i class="fas fa-chevron-left"></i>
+                                    </a>
+                                </li>
+                                {% endif %}
+                                
+                                {% for num in page_obj.paginator.page_range %}
+                                    {% if page_obj.number == num %}
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ num }}</span>
+                                    </li>
+                                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?q={{ request.GET.q }}&category={{ request.GET.category }}&type={{ request.GET.type }}&page={{ num }}">{{ num }}</a>
+                                    </li>
+                                    {% endif %}
+                                {% endfor %}
+                                
+                                {% if page_obj.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?q={{ request.GET.q }}&category={{ request.GET.category }}&type={{ request.GET.type }}&page={{ page_obj.next_page_number }}">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </a>
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                    </div>
+                    {% endif %}
+                    
+                {% else %}
+                    <!-- No Results -->
+                    <div class="no-results">
+                        <i class="fas fa-search"></i>
+                        {% if request.GET.q %}
+                        <h4>No results found</h4>
+                        <p class="text-muted mb-4">
+                            We couldn't find any documents matching "<strong>{{ request.GET.q }}</strong>".
+                        </p>
+                        <div class="mb-3">
+                            <h6>Try:</h6>
+                            <ul class="list-unstyled text-left d-inline-block">
+                                <li>• Checking your spelling</li>
+                                <li>• Using different keywords</li>
+                                <li>• Using more general terms</li>
+                                <li>• Removing filters</li>
+                            </ul>
+                        </div>
+                        {% else %}
+                        <h4>Start your search</h4>
+                        <p class="text-muted mb-4">
+                            Enter keywords to search through our knowledge base.
+                        </p>
+                        {% endif %}
+                        
+                        <a href="{% url 'knowledge:document_list' %}" class="btn btn-primary">
+                            <i class="fas fa-list mr-1"></i> Browse All Documents
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Highlight search terms in results
+    const searchTerm = '{{ request.GET.q|escapejs }}';
+    if (searchTerm) {
+        highlightSearchTerms(searchTerm);
+    }
+    
+    // Auto-submit form on filter change
+    $('.filter-form select').on('change', function() {
+        $(this).closest('form').submit();
+    });
+    
+    // Search input focus
+    $('.search-input').focus();
+});
+
+function highlightSearchTerms(term) {
+    if (!term || term.length < 2) return;
+    
+    const regex = new RegExp(`(${term})`, 'gi');
+    
+    $('.result-title, .result-snippet').each(function() {
+        const $this = $(this);
+        const text = $this.text();
+        const highlightedText = text.replace(regex, '<span class="highlight">$1</span>');
+        if (text !== highlightedText) {
+            $this.html(highlightedText);
+        }
+    });
+}
+
+// Track search analytics
+function trackSearch(query, resultsCount) {
+    // Add analytics tracking here if needed
+    console.log('Search: "' + query + '" - ' + resultsCount + ' results');
+}
+
+// Initialize search tracking
+var searchQuery = '{{ request.GET.q|escapejs }}';
+var resultsCount = parseInt('{{ documents|length|default:0 }}');
+if (searchQuery && !isNaN(resultsCount)) {
+    trackSearch(searchQuery, resultsCount);
+}
+</script>
+{% endblock %}

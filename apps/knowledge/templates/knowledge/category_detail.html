@@ -1,0 +1,322 @@
+{% extends 'knowledge/base_knowledge.html' %}
+{% load static %}
+
+{% block title %}{{ category.name }} - Knowledge Base{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/knowledge.css' %}">
+<style>
+.category-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 3rem 0;
+    margin-bottom: 2rem;
+}
+
+.category-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: white;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.stat-number {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #667eea;
+    display: block;
+}
+
+.stat-label {
+    color: #6c757d;
+    font-size: 0.9rem;
+}
+
+.document-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.document-card {
+    background: white;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+}
+
+.document-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.document-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #2c3e50;
+    text-decoration: none;
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+.document-title:hover {
+    color: #667eea;
+    text-decoration: none;
+}
+
+.document-excerpt {
+    color: #6c757d;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin-bottom: 1rem;
+}
+
+.document-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.8rem;
+    color: #6c757d;
+}
+
+.document-tags {
+    margin-top: 0.75rem;
+}
+
+.document-tag {
+    display: inline-block;
+    background: #e9ecef;
+    color: #495057;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    text-decoration: none;
+    margin-right: 0.25rem;
+    margin-bottom: 0.25rem;
+}
+
+.document-tag:hover {
+    background: #667eea;
+    color: white;
+    text-decoration: none;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'knowledge:dashboard' %}">Knowledge Base</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'knowledge:category_list' %}">Categories</a></li>
+            <li class="breadcrumb-item active">{{ category.name }}</li>
+        </ol>
+    </nav>
+
+    <!-- Category Header -->
+    <div class="category-header">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center mr-3 category-icon" 
+                             style="width: 60px; height: 60px; color: white; font-size: 1.5rem;"
+                             data-color="{{ category.color|default:'#667eea' }}">
+                            <i class="{{ category.icon|default:'fas fa-folder' }}"></i>
+                        </div>
+                        <script>
+                        document.addEventListener('DOMContentLoaded', function() {
+                            const categoryIcon = document.querySelector('.category-icon');
+                            if (categoryIcon) {
+                                const color = categoryIcon.getAttribute('data-color');
+                                categoryIcon.style.background = color;
+                            }
+                        });
+                        </script>
+                        <div>
+                            <h1 class="mb-1">{{ category.name }}</h1>
+                            <p class="mb-0 opacity-75">{{ category.description }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 text-md-right">
+                    {% if perms.knowledge.add_knowledgedocument %}
+                    <a href="{% url 'knowledge:document_create' %}?category={{ category.id }}" class="btn btn-light">
+                        <i class="fas fa-plus mr-1"></i> Add Document
+                    </a>
+                    {% endif %}
+                    {% if perms.knowledge.change_documentcategory %}
+                    <a href="{% url 'knowledge:category_edit' category.id %}" class="btn btn-outline-light ml-2">
+                        <i class="fas fa-edit mr-1"></i> Edit Category
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Statistics -->
+        <div class="category-stats">
+            <div class="stat-card">
+                <span class="stat-number">{{ document_count }}</span>
+                <div class="stat-label">Documents</div>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number">{{ category.total_views|default:0 }}</span>
+                <div class="stat-label">Total Views</div>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number">{{ category.contributors_count|default:0 }}</span>
+                <div class="stat-label">Contributors</div>
+            </div>
+            <div class="stat-card">
+                <span class="stat-number">{{ category.updated_at|date:'M d, Y' }}</span>
+                <div class="stat-label">Last Updated</div>
+            </div>
+        </div>
+
+        <!-- Search and Filters -->
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <form method="get" class="d-flex">
+                    <input type="text" name="search" class="form-control" placeholder="Search documents in this category..." value="{{ request.GET.search }}">
+                    <button type="submit" class="btn btn-primary ml-2">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </form>
+            </div>
+            <div class="col-md-4 text-md-right">
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="sortDocuments('title')">
+                        <i class="fas fa-sort-alpha-down mr-1"></i> Title
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="sortDocuments('date')">
+                        <i class="fas fa-sort-numeric-down mr-1"></i> Date
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="sortDocuments('views')">
+                        <i class="fas fa-eye mr-1"></i> Views
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Documents -->
+        {% if documents %}
+        <div class="document-grid" id="documents-grid">
+            {% for document in documents %}
+            <div class="document-card" data-title="{{ document.title|lower }}" data-date="{{ document.updated_at|date:'Y-m-d' }}" data-views="{{ document.view_count }}">
+                <a href="{% url 'knowledge:document_detail' document.id %}" class="document-title">
+                    {{ document.title }}
+                </a>
+                <div class="document-excerpt">
+                            {{ document.description|truncatewords:20|default:"No description available" }}
+                        </div>
+                <div class="document-meta">
+                    <span><i class="fas fa-user mr-1"></i> {{ document.created_by.get_full_name|default:document.created_by.username }}</span>
+                    <span><i class="fas fa-eye mr-1"></i> {{ document.view_count }}</span>
+                </div>
+                <div class="document-meta mt-1">
+                    <span><i class="fas fa-calendar mr-1"></i> {{ document.updated_at|date:"M d, Y" }}</span>
+                    <span class="status-badge status-{{ document.status }}">{{ document.get_status_display }}</span>
+                </div>
+                {% if document.tags.all %}
+                <div class="document-tags">
+                    {% for tag in document.tags.all|slice:":3" %}
+                    <a href="{% url 'knowledge:document_search' %}?category={{ category.id }}&tag={{ tag.name }}" class="document-tag">
+                        {{ tag.name }}
+                    </a>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-file-alt fa-4x text-muted mb-3"></i>
+            <h4>No documents in this category</h4>
+            <p class="text-muted">Start building your knowledge base by adding documents to this category.</p>
+            {% if perms.knowledge.add_knowledgedocument %}
+            <a href="{% url 'knowledge:document_create' %}?category={{ category.id }}" class="btn btn-primary">
+                <i class="fas fa-plus mr-1"></i> Add First Document
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function sortDocuments(criteria) {
+    const grid = document.getElementById('documents-grid');
+    const cards = Array.from(grid.children);
+    
+    cards.sort((a, b) => {
+        let aValue, bValue;
+        
+        switch(criteria) {
+            case 'title':
+                aValue = a.dataset.title;
+                bValue = b.dataset.title;
+                return aValue.localeCompare(bValue);
+            case 'date':
+                aValue = new Date(a.dataset.date);
+                bValue = new Date(b.dataset.date);
+                return bValue - aValue; // Newest first
+            case 'views':
+                aValue = parseInt(a.dataset.views);
+                bValue = parseInt(b.dataset.views);
+                return bValue - aValue; // Highest first
+            default:
+                return 0;
+        }
+    });
+    
+    // Clear and re-append sorted cards
+    grid.innerHTML = '';
+    cards.forEach(card => grid.appendChild(card));
+    
+    // Update active button
+    document.querySelectorAll('.btn-group .btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    event.target.classList.add('active');
+}
+
+// Search functionality
+document.querySelector('form').addEventListener('submit', function(e) {
+    const searchTerm = this.querySelector('input[name="search"]').value.toLowerCase();
+    
+    if (!searchTerm) {
+        return; // Let form submit normally
+    }
+    
+    e.preventDefault();
+    
+    const cards = document.querySelectorAll('.document-card');
+    cards.forEach(card => {
+        const title = card.dataset.title;
+        const content = card.textContent.toLowerCase();
+        
+        if (title.includes(searchTerm) || content.includes(searchTerm)) {
+            card.style.display = 'block';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+});
+</script>
+{% endblock %}

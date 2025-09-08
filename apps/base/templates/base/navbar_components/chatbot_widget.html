@@ -1,0 +1,640 @@
+{% load static %}
+{% load i18n %}
+<div class="oh-dropdown" id="chatbotWidget" x-data="{open: false, minimized: false}">
+    <div class="oh-navbar__action-icons">
+        <a href="#" class="oh-navbar__action-icons-link" title="{% trans 'AI Assistant' %}" @click="open = !open">
+            <ion-icon name="chatbubble-ellipses-outline" class="oh-navbar__icon"></ion-icon>
+            <span class="oh-navbar__notification-badge" id="chatbot-notification-badge" style="display: none;">1</span>
+        </a>
+    </div>
+    
+    <!-- Chatbot Floating Widget -->
+    <div class="oh-chatbot-widget" x-show="open" @click.outside="open = false" 
+         x-transition:enter="oh-chatbot-widget--enter"
+         x-transition:enter-start="oh-chatbot-widget--enter-start"
+         x-transition:enter-end="oh-chatbot-widget--enter-end"
+         x-transition:leave="oh-chatbot-widget--leave"
+         x-transition:leave-start="oh-chatbot-widget--leave-start"
+         x-transition:leave-end="oh-chatbot-widget--leave-end"
+         style="display: none;">
+        
+        <!-- Widget Header -->
+        <div class="oh-chatbot-widget__header">
+            <div class="oh-chatbot-widget__header-info">
+                <div class="oh-chatbot-widget__avatar">
+                    <ion-icon name="chatbubble-ellipses" class="oh-chatbot-widget__avatar-icon"></ion-icon>
+                </div>
+                <div class="oh-chatbot-widget__header-text">
+                    <h4 class="oh-chatbot-widget__title">{% trans 'AI Assistant' %}</h4>
+                    <span class="oh-chatbot-widget__status">{% trans 'Online' %}</span>
+                </div>
+            </div>
+            <div class="oh-chatbot-widget__header-actions">
+                <button class="oh-chatbot-widget__minimize" @click="minimized = !minimized" title="{% trans 'Minimize' %}">
+                    <ion-icon name="remove-outline"></ion-icon>
+                </button>
+                <button class="oh-chatbot-widget__close" @click="open = false" title="{% trans 'Close' %}">
+                    <ion-icon name="close-outline"></ion-icon>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Widget Body -->
+        <div class="oh-chatbot-widget__body" x-show="!minimized">
+            <div class="oh-chatbot-widget__messages" id="chatbot-messages">
+                <!-- Welcome Message -->
+                <div class="oh-chatbot-message oh-chatbot-message--bot">
+                    <div class="oh-chatbot-message__avatar">
+                        <ion-icon name="chatbubble-ellipses"></ion-icon>
+                    </div>
+                    <div class="oh-chatbot-message__content">
+                        <div class="oh-chatbot-message__bubble">
+                            <p>{% trans 'Hello! I am your AI assistant. How can I help you today?' %}</p>
+                        </div>
+                        <div class="oh-chatbot-message__time">
+                            <span id="welcome-time"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Quick Actions -->
+            <div class="oh-chatbot-widget__quick-actions">
+                <button class="oh-chatbot-quick-action" onclick="sendQuickMessage('How do I create a new employee?')">
+                    <ion-icon name="person-add-outline"></ion-icon>
+                    <span>{% trans 'Add Employee' %}</span>
+                </button>
+                <button class="oh-chatbot-quick-action" onclick="sendQuickMessage('How do I manage attendance?')">
+                    <ion-icon name="time-outline"></ion-icon>
+                    <span>{% trans 'Attendance' %}</span>
+                </button>
+                <button class="oh-chatbot-quick-action" onclick="sendQuickMessage('How do I create a budget plan?')">
+                    <ion-icon name="card-outline"></ion-icon>
+                    <span>{% trans 'Budget' %}</span>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Widget Footer -->
+        <div class="oh-chatbot-widget__footer" x-show="!minimized">
+            <form class="oh-chatbot-widget__input-form" onsubmit="sendChatMessage(event)">
+                <div class="oh-chatbot-widget__input-container">
+                    <input type="text" 
+                           class="oh-chatbot-widget__input" 
+                           id="chatbot-input"
+                           placeholder="{% trans 'Type your message...' %}"
+                           autocomplete="off">
+                    <button type="submit" class="oh-chatbot-widget__send-btn" title="{% trans 'Send' %}">
+                        <ion-icon name="send-outline"></ion-icon>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Chatbot Widget Styles -->
+<style>
+.oh-chatbot-widget {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 380px;
+    max-height: 600px;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
+}
+
+.oh-chatbot-widget__header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 16px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.oh-chatbot-widget__header-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.oh-chatbot-widget__avatar {
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.oh-chatbot-widget__avatar-icon {
+    font-size: 20px;
+}
+
+.oh-chatbot-widget__title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.oh-chatbot-widget__status {
+    font-size: 12px;
+    opacity: 0.9;
+}
+
+.oh-chatbot-widget__header-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.oh-chatbot-widget__minimize,
+.oh-chatbot-widget__close {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.oh-chatbot-widget__minimize:hover,
+.oh-chatbot-widget__close:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.oh-chatbot-widget__body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    max-height: 400px;
+}
+
+.oh-chatbot-widget__messages {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    max-height: 300px;
+}
+
+.oh-chatbot-message {
+    display: flex;
+    margin-bottom: 16px;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.oh-chatbot-message--user {
+    flex-direction: row-reverse;
+}
+
+.oh-chatbot-message__avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.oh-chatbot-message--bot .oh-chatbot-message__avatar {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+.oh-chatbot-message--user .oh-chatbot-message__avatar {
+    background: #667eea;
+    color: white;
+}
+
+.oh-chatbot-message__content {
+    flex: 1;
+}
+
+.oh-chatbot-message__bubble {
+    padding: 12px 16px;
+    border-radius: 18px;
+    max-width: 280px;
+    word-wrap: break-word;
+}
+
+.oh-chatbot-message--bot .oh-chatbot-message__bubble {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+.oh-chatbot-message--user .oh-chatbot-message__bubble {
+    background: #667eea;
+    color: white;
+    margin-left: auto;
+}
+
+.oh-chatbot-message__time {
+    font-size: 11px;
+    color: #9ca3af;
+    margin-top: 4px;
+    text-align: right;
+}
+
+.oh-chatbot-message--bot .oh-chatbot-message__time {
+    text-align: left;
+}
+
+.oh-chatbot-widget__quick-actions {
+    padding: 16px 20px;
+    border-top: 1px solid #f3f4f6;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.oh-chatbot-quick-action {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 20px;
+    font-size: 12px;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.oh-chatbot-quick-action:hover {
+    background: #e2e8f0;
+    color: #475569;
+}
+
+.oh-chatbot-widget__footer {
+    padding: 16px 20px;
+    border-top: 1px solid #f3f4f6;
+}
+
+.oh-chatbot-widget__input-container {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.oh-chatbot-widget__input {
+    flex: 1;
+    padding: 12px 16px;
+    border: 1px solid #e5e7eb;
+    border-radius: 24px;
+    outline: none;
+    font-size: 14px;
+}
+
+.oh-chatbot-widget__input:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.oh-chatbot-widget__send-btn {
+    width: 40px;
+    height: 40px;
+    background: #667eea;
+    border: none;
+    border-radius: 50%;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+}
+
+.oh-chatbot-widget__send-btn:hover {
+    background: #5a67d8;
+}
+
+.oh-navbar__notification-badge {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    background: #ef4444;
+    color: white;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+}
+
+/* Animations */
+.oh-chatbot-widget--enter {
+    transition: all 0.3s ease-out;
+}
+
+.oh-chatbot-widget--enter-start {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+}
+
+.oh-chatbot-widget--enter-end {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+
+.oh-chatbot-widget--leave {
+    transition: all 0.2s ease-in;
+}
+
+.oh-chatbot-widget--leave-start {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+
+.oh-chatbot-widget--leave-end {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .oh-chatbot-widget {
+        width: 100vw;
+        height: 100vh;
+        right: 0;
+        bottom: 0;
+        border-radius: 0;
+        max-height: none;
+    }
+
+    .oh-chatbot-widget__header {
+        padding: 1rem;
+    }
+
+    .oh-chatbot-widget__body {
+        height: calc(100vh - 200px);
+    }
+
+    .oh-chatbot-widget__quick-actions {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .oh-chatbot-quick-action {
+        width: 100%;
+        justify-content: flex-start;
+    }
+}
+
+@media (max-width: 480px) {
+    .oh-chatbot-widget {
+        width: 100vw;
+        height: 100vh;
+        right: 0;
+        bottom: 0;
+        border-radius: 0;
+        max-height: none;
+    }
+    
+    .oh-chatbot-widget__quick-actions {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .oh-chatbot-quick-action {
+        justify-content: flex-start;
+        width: 100%;
+    }
+
+    .oh-chatbot-widget__input-container {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .oh-chatbot-widget__input {
+        margin-right: 0;
+    }
+
+    .oh-chatbot-widget__send-btn {
+        width: 100%;
+        border-radius: 24px;
+        height: 48px;
+    }
+}
+
+@media (min-width: 1200px) {
+    .oh-chatbot-widget {
+        width: 400px;
+    }
+}
+</style>
+
+<!-- Chatbot Widget JavaScript -->
+<script>
+// Initialize welcome message time
+document.addEventListener('DOMContentLoaded', function() {
+    const welcomeTime = document.getElementById('welcome-time');
+    if (welcomeTime) {
+        welcomeTime.textContent = new Date().toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+});
+
+// Global chatbot variables
+let currentConversationId = null;
+let isTyping = false;
+
+// Send chat message function
+function sendChatMessage(event) {
+    event.preventDefault();
+    
+    const input = document.getElementById('chatbot-input');
+    const message = input.value.trim();
+    
+    if (!message || isTyping) return;
+    
+    // Add user message to chat
+    addMessageToChat(message, 'user');
+    input.value = '';
+    
+    // Send to API
+    sendMessageToAPI(message);
+}
+
+// Send quick message
+function sendQuickMessage(message) {
+    addMessageToChat(message, 'user');
+    sendMessageToAPI(message);
+}
+
+// Add message to chat UI
+function addMessageToChat(message, sender) {
+    const messagesContainer = document.getElementById('chatbot-messages');
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `oh-chatbot-message oh-chatbot-message--${sender}`;
+    
+    const currentTime = new Date().toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+    
+    const avatarIcon = sender === 'user' ? 'person-outline' : 'chatbubble-ellipses';
+    
+    messageDiv.innerHTML = `
+        <div class="oh-chatbot-message__avatar">
+            <ion-icon name="${avatarIcon}"></ion-icon>
+        </div>
+        <div class="oh-chatbot-message__content">
+            <div class="oh-chatbot-message__bubble">
+                <p>${message}</p>
+            </div>
+            <div class="oh-chatbot-message__time">
+                <span>${currentTime}</span>
+            </div>
+        </div>
+    `;
+    
+    messagesContainer.appendChild(messageDiv);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+
+// Send message to API
+function sendMessageToAPI(message) {
+    isTyping = true;
+    
+    // Show typing indicator
+    showTypingIndicator();
+    
+    const apiUrl = '/api/knowledge/slm/chat/';
+    const requestData = {
+        query: message
+    };
+    
+    if (currentConversationId) {
+        requestData.conversation_id = currentConversationId;
+    }
+    
+    fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify(requestData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        hideTypingIndicator();
+        
+        if (data.success) {
+            currentConversationId = data.conversation_id;
+            addMessageToChat(data.response, 'bot');
+        } else {
+            addMessageToChat('Sorry, I encountered an error. Please try again.', 'bot');
+        }
+    })
+    .catch(error => {
+        console.error('Chatbot API Error:', error);
+        hideTypingIndicator();
+        addMessageToChat('Sorry, I am currently unavailable. Please try again later.', 'bot');
+    })
+    .finally(() => {
+        isTyping = false;
+    });
+}
+
+// Show typing indicator
+function showTypingIndicator() {
+    const messagesContainer = document.getElementById('chatbot-messages');
+    const typingDiv = document.createElement('div');
+    typingDiv.id = 'typing-indicator';
+    typingDiv.className = 'oh-chatbot-message oh-chatbot-message--bot';
+    typingDiv.innerHTML = `
+        <div class="oh-chatbot-message__avatar">
+            <ion-icon name="chatbubble-ellipses"></ion-icon>
+        </div>
+        <div class="oh-chatbot-message__content">
+            <div class="oh-chatbot-message__bubble">
+                <div class="typing-dots">
+                    <span></span><span></span><span></span>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    messagesContainer.appendChild(typingDiv);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+
+// Hide typing indicator
+function hideTypingIndicator() {
+    const typingIndicator = document.getElementById('typing-indicator');
+    if (typingIndicator) {
+        typingIndicator.remove();
+    }
+}
+
+// Get CSRF token
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+
+<!-- Typing dots animation -->
+<style>
+.typing-dots {
+    display: flex;
+    gap: 4px;
+    padding: 8px 0;
+}
+
+.typing-dots span {
+    width: 6px;
+    height: 6px;
+    background: #9ca3af;
+    border-radius: 50%;
+    animation: typing 1.4s infinite ease-in-out;
+}
+
+.typing-dots span:nth-child(1) {
+    animation-delay: -0.32s;
+}
+
+.typing-dots span:nth-child(2) {
+    animation-delay: -0.16s;
+}
+
+@keyframes typing {
+    0%, 80%, 100% {
+        transform: scale(0.8);
+        opacity: 0.5;
+    }
+    40% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+</style>

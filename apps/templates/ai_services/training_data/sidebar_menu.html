@@ -1,0 +1,305 @@
+{% load static %}
+{% load i18n %}
+
+<!-- Training Data Menu Item -->
+{% if user.is_authenticated and user.is_superuser or user.employee_get.employee_work_info.job_position.job_position in 'HR_ADMIN,MANAGER' or 'training_data_access' in user.get_all_permissions %}
+<li class="nav-item">
+    <a class="nav-link collapsed" href="#" data-bs-toggle="collapse" data-bs-target="#trainingDataCollapse" 
+       aria-expanded="false" aria-controls="trainingDataCollapse">
+        <i class="fas fa-brain"></i>
+        <span>Training Data</span>
+        <i class="fas fa-chevron-down ms-auto"></i>
+    </a>
+    <div id="trainingDataCollapse" class="collapse" data-bs-parent="#accordionSidebar">
+        <div class="bg-white py-2 collapse-inner rounded">
+            <h6 class="collapse-header">AI Training:</h6>
+            
+            <!-- Dashboard -->
+            <a class="collapse-item {% if request.resolver_match.url_name == 'training_data_dashboard' %}active{% endif %}" 
+               href="{% url 'ai_services:training_data_dashboard' %}">
+                <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+            </a>
+            
+            <!-- Upload Data -->
+            {% if user.is_superuser or user.employee_get.employee_work_info.job_position.job_position in 'HR_ADMIN,MANAGER' or 'training_data_upload' in user.get_all_permissions %}
+            <a class="collapse-item {% if request.resolver_match.url_name == 'training_data_upload' %}active{% endif %}" 
+               href="{% url 'ai_services:training_data_upload' %}">
+                <i class="fas fa-upload me-2"></i>Upload Data
+            </a>
+            {% endif %}
+            
+            <!-- Data Management -->
+            <div class="dropdown-divider"></div>
+            <h6 class="collapse-header">Management:</h6>
+            
+            <!-- All Training Data -->
+            <a class="collapse-item {% if request.resolver_match.url_name == 'training_data_list' %}active{% endif %}" 
+               href="{% url 'ai_services:training_data_dashboard' %}?view=list">
+                <i class="fas fa-list me-2"></i>All Data
+            </a>
+            
+            <!-- Pending Processing -->
+            <a class="collapse-item" 
+               href="{% url 'ai_services:training_data_dashboard' %}?status=pending">
+                <i class="fas fa-clock me-2"></i>Pending
+                <span class="badge badge-warning badge-counter ms-auto" id="pendingCount">0</span>
+            </a>
+            
+            <!-- Processing -->
+            <a class="collapse-item" 
+               href="{% url 'ai_services:training_data_dashboard' %}?status=processing">
+                <i class="fas fa-cog me-2"></i>Processing
+                <span class="badge badge-primary badge-counter ms-auto" id="processingCount">0</span>
+            </a>
+            
+            <!-- Completed -->
+            <a class="collapse-item" 
+               href="{% url 'ai_services:training_data_dashboard' %}?status=completed">
+                <i class="fas fa-check-circle me-2"></i>Completed
+                <span class="badge badge-success badge-counter ms-auto" id="completedCount">0</span>
+            </a>
+            
+            <!-- Failed -->
+            <a class="collapse-item" 
+               href="{% url 'ai_services:training_data_dashboard' %}?status=failed">
+                <i class="fas fa-exclamation-triangle me-2"></i>Failed
+                <span class="badge badge-danger badge-counter ms-auto" id="failedCount">0</span>
+            </a>
+            
+            <!-- Analytics -->
+            <div class="dropdown-divider"></div>
+            <h6 class="collapse-header">Analytics:</h6>
+            
+            <a class="collapse-item" 
+               href="{% url 'ai_services:training_data_dashboard' %}?view=analytics">
+                <i class="fas fa-chart-bar me-2"></i>Statistics
+            </a>
+            
+            <!-- Data Types -->
+            <a class="collapse-item" 
+               href="{% url 'ai_services:training_data_dashboard' %}?view=types">
+                <i class="fas fa-tags me-2"></i>Data Types
+            </a>
+            
+            <!-- Recent Activity -->
+            <a class="collapse-item" 
+               href="{% url 'ai_services:training_data_dashboard' %}?view=recent">
+                <i class="fas fa-history me-2"></i>Recent Activity
+            </a>
+        </div>
+    </div>
+</li>
+
+<!-- Training Data Quick Stats (Optional Mini Widget) -->
+<li class="nav-item d-none d-lg-block">
+    <div class="nav-link text-center py-2" style="background: rgba(78, 115, 223, 0.1); margin: 5px 10px; border-radius: 5px;">
+        <div class="small text-muted mb-1">Training Data</div>
+        <div class="row text-center">
+            <div class="col-6">
+                <div class="text-primary font-weight-bold" id="totalTrainingData">-</div>
+                <div class="small text-muted">Total</div>
+            </div>
+            <div class="col-6">
+                <div class="text-success font-weight-bold" id="processedToday">-</div>
+                <div class="small text-muted">Today</div>
+            </div>
+        </div>
+    </div>
+</li>
+{% endif %}
+
+<!-- Custom CSS for Training Data Menu -->
+<style>
+.badge-counter {
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    border-radius: 10px;
+    min-width: 18px;
+    text-align: center;
+}
+
+.collapse-item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 1rem;
+    text-decoration: none;
+    color: #5a5c69;
+    transition: all 0.3s;
+}
+
+.collapse-item:hover {
+    background-color: #f8f9fc;
+    color: #5a5c69;
+    text-decoration: none;
+}
+
+.collapse-item.active {
+    background-color: #4e73df;
+    color: white;
+    font-weight: 600;
+}
+
+.collapse-item.active .badge-counter {
+    background-color: rgba(255, 255, 255, 0.2) !important;
+    color: white;
+}
+
+.collapse-header {
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: #b7b9cc;
+    text-transform: uppercase;
+    letter-spacing: 0.05rem;
+    margin: 0.5rem 1rem 0.25rem;
+}
+
+.dropdown-divider {
+    margin: 0.5rem 1rem;
+    border-top: 1px solid #e3e6f0;
+}
+
+/* Animation for counters */
+.badge-counter {
+    transition: all 0.3s ease;
+}
+
+.badge-counter.updated {
+    transform: scale(1.2);
+    animation: pulse 0.6s ease-in-out;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .nav-item .nav-link span {
+        display: none;
+    }
+    
+    .collapse-inner {
+        position: absolute;
+        left: 60px;
+        top: 0;
+        min-width: 200px;
+        z-index: 1000;
+        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+    }
+}
+
+/* Loading state */
+.loading-counter {
+    opacity: 0.6;
+    position: relative;
+}
+
+.loading-counter::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 12px;
+    height: 12px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #4e73df;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: translate(-50%, -50%) rotate(0deg); }
+    100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+</style>
+
+<!-- JavaScript for Dynamic Updates -->
+<script>
+// Update training data counters
+function updateTrainingDataCounters() {
+    fetch('/ai-services/training-data/api/stats/', {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Update counters with animation
+            updateCounter('pendingCount', data.stats.pending);
+            updateCounter('processingCount', data.stats.processing);
+            updateCounter('completedCount', data.stats.completed);
+            updateCounter('failedCount', data.stats.failed);
+            updateCounter('totalTrainingData', data.stats.total);
+            updateCounter('processedToday', data.stats.processed_today);
+        }
+    })
+    .catch(error => {
+        console.error('Error updating training data counters:', error);
+    });
+}
+
+function updateCounter(elementId, newValue) {
+    const element = document.getElementById(elementId);
+    if (element) {
+        const currentValue = element.textContent;
+        if (currentValue !== newValue.toString()) {
+            element.textContent = newValue;
+            element.classList.add('updated');
+            setTimeout(() => {
+                element.classList.remove('updated');
+            }, 600);
+        }
+    }
+}
+
+// Initialize counters when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    updateTrainingDataCounters();
+    
+    // Update counters every 30 seconds
+    setInterval(updateTrainingDataCounters, 30000);
+});
+
+// Update counters when training data menu is expanded
+document.addEventListener('DOMContentLoaded', function() {
+    const trainingDataToggle = document.querySelector('[data-bs-target="#trainingDataCollapse"]');
+    if (trainingDataToggle) {
+        trainingDataToggle.addEventListener('click', function() {
+            setTimeout(updateTrainingDataCounters, 300); // Small delay for animation
+        });
+    }
+});
+
+// Real-time updates via WebSocket (if available)
+if (typeof io !== 'undefined') {
+    const socket = io('/training-data');
+    
+    socket.on('status_update', function(data) {
+        updateTrainingDataCounters();
+    });
+    
+    socket.on('processing_complete', function(data) {
+        updateTrainingDataCounters();
+        
+        // Show notification
+        if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification('Training Data Processed', {
+                body: `${data.title} has been processed successfully.`,
+                icon: '/static/img/favicon.ico'
+            });
+        }
+    });
+}
+
+// Request notification permission
+if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+}
+</script>
