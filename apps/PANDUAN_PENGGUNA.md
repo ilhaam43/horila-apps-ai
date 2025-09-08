@@ -162,13 +162,56 @@ Setelah login, Anda akan melihat:
    - FAQ
 
 #### Menggunakan AI Assistant:
-1. Klik ikon **"AI Assistant"** di pojok kanan bawah
-2. Ketik pertanyaan dalam bahasa Indonesia atau Inggris
-3. AI akan memberikan jawaban berdasarkan knowledge base
-4. Contoh pertanyaan:
-   - "Bagaimana cara mengajukan cuti?"
-   - "Apa saja benefit karyawan?"
-   - "Prosedur reimbursement?"
+1. **Akses AI Assistant**:
+   - Klik ikon **"AI Assistant"** di pojok kanan bawah
+   - Atau gunakan shortcut **Ctrl + Shift + A**
+   - Tersedia di semua halaman sistem
+
+2. **Cara Berinteraksi**:
+   - Ketik pertanyaan dalam bahasa Indonesia atau Ingglis
+   - Gunakan bahasa natural seperti berbicara dengan manusia
+   - AI memahami context dari percakapan sebelumnya
+   - Bisa follow-up dengan pertanyaan lanjutan
+
+3. **Jenis Pertanyaan yang Bisa Dijawab**:
+   - **Policy & Procedures**: "Bagaimana prosedur cuti sakit?"
+   - **System Navigation**: "Dimana saya bisa lihat slip gaji?"
+   - **Calculations**: "Berapa overtime rate untuk weekend?"
+   - **Troubleshooting**: "Kenapa saya tidak bisa upload dokumen?"
+   - **Company Information**: "Apa saja benefit kesehatan karyawan?"
+
+4. **Fitur Advanced AI**:
+   - **Smart Suggestions**: AI memberikan saran proaktif
+   - **Document Analysis**: Upload dokumen untuk analisis
+   - **Multi-language Support**: Bahasa Indonesia dan Inggris
+   - **Context Awareness**: Memahami role dan department user
+   - **Learning Capability**: Semakin pintar dari interaksi user
+
+5. **Tips Menggunakan AI Assistant**:
+   - Gunakan kalimat lengkap untuk hasil terbaik
+   - Sebutkan context spesifik ("sebagai manager", "untuk karyawan baru")
+   - Jika jawaban kurang tepat, reformulate pertanyaan
+   - Gunakan feedback thumbs up/down untuk improve AI
+
+6. **Contoh Percakapan**:
+   ```
+   User: "Bagaimana cara mengajukan cuti?"
+   AI: "Untuk mengajukan cuti, ikuti langkah berikut:
+        1. Masuk ke menu Leave > Apply Leave
+        2. Pilih jenis cuti dan tanggal
+        3. Isi alasan dan upload dokumen pendukung
+        4. Submit untuk approval atasan
+        
+        Apakah Anda butuh bantuan dengan jenis cuti tertentu?"
+   
+   User: "Cuti sakit perlu dokumen apa?"
+   AI: "Untuk cuti sakit, Anda perlu:
+        - Surat keterangan dokter (untuk >3 hari)
+        - Resep obat atau bukti berobat
+        - Form medical certificate dari HR
+        
+        Cuti sakit 1-2 hari tidak perlu surat dokter."
+   ```
 
 ---
 
@@ -344,21 +387,70 @@ Setelah login sebagai admin, dashboard menampilkan:
 ### 9. Knowledge Management Admin
 
 #### Content Management:
-1. Masuk ke **"Knowledge" > "Content Management"**
-2. Create/Edit articles:
-   - Company policies
-   - Procedures
-   - Training materials
-   - FAQ updates
-3. Set access permissions
-4. Version control
+1. **Struktur Knowledge Base**:
+   - **Categories**: Policies, Procedures, Training, FAQ
+   - **Tags**: Untuk easy searching dan filtering
+   - **Access Levels**: Public, Department-specific, Role-based
+   - **Version Control**: Track changes dan revisions
 
-#### AI Training:
-1. Pilih **"Knowledge" > "AI Training"**
-2. Upload new documents
-3. Review AI responses
-4. Fine-tune responses
-5. Monitor usage analytics
+2. **Creating Content**:
+   - Masuk ke **"Knowledge" > "Content Management"**
+   - Klik **"Create New Article"**
+   - Pilih template atau start from scratch
+   - Use rich text editor dengan multimedia support
+   - Add tags dan categories
+   - Set access permissions
+   - Preview sebelum publish
+
+3. **Content Types**:
+   - **Policies**: Company policies dengan approval workflow
+   - **Procedures**: Step-by-step guides dengan screenshots
+   - **Training Materials**: Videos, presentations, documents
+   - **FAQ**: Frequently asked questions dengan AI-generated answers
+   - **Forms & Templates**: Downloadable forms dan templates
+
+4. **Advanced Features**:
+   - **Multi-language Support**: Content dalam bahasa Indonesia dan Inggris
+   - **Auto-translation**: AI translation untuk content
+   - **Smart Linking**: Otomatis link ke related articles
+   - **Analytics**: Track views, searches, dan user engagement
+   - **Feedback System**: User rating dan comments
+
+#### AI Training & Integration:
+1. **AI Knowledge Training**:
+   - Pilih **"Knowledge" > "AI Training"**
+   - Upload documents (PDF, DOC, TXT)
+   - AI otomatis extract dan index content
+   - Review extracted information
+   - Approve untuk training dataset
+
+2. **AI Response Management**:
+   - Monitor AI responses di **"AI Analytics"**
+   - Review user feedback (thumbs up/down)
+   - Edit incorrect responses
+   - Add new training examples
+   - Fine-tune AI model parameters
+
+3. **Integration Features**:
+   - **Smart Search**: AI-powered search dengan natural language
+   - **Auto-categorization**: AI otomatis categorize new content
+   - **Content Suggestions**: AI suggest related articles
+   - **Gap Analysis**: Identify missing content berdasarkan user queries
+   - **Personalization**: AI customize content berdasarkan user role
+
+4. **Knowledge Analytics**:
+   - **Usage Statistics**: Most viewed, searched content
+   - **User Behavior**: Search patterns, content gaps
+   - **AI Performance**: Response accuracy, user satisfaction
+   - **Content Health**: Outdated content, broken links
+   - **ROI Metrics**: Time saved, support ticket reduction
+
+5. **Integration dengan Sistem Lain**:
+   - **HR Processes**: Link policies ke workflows
+   - **Training System**: Integrate dengan learning management
+   - **Support Tickets**: Auto-suggest solutions
+   - **Onboarding**: Personalized content untuk new hires
+   - **Performance Reviews**: Link ke development resources
 
 ### 10. System Administration
 
@@ -710,14 +802,56 @@ A:
 2. **Be Specific**: "Berapa saldo cuti annual saya tahun ini?"
 3. **Context Matters**: "Prosedur reimbursement untuk training external"
 4. **Follow-up Questions**: AI bisa handle conversation context
+5. **Use Feedback**: Berikan thumbs up/down untuk improve responses
+6. **Upload Documents**: Attach files untuk analysis dan explanation
 
-**Q: AI Assistant tidak memberikan jawaban yang tepat?**
-A: 
-1. **Rephrase Question**: Coba dengan kata-kata yang berbeda
-2. **Add Context**: Berikan informasi lebih detail
-3. **Use Keywords**: Include relevant HR terms
-4. **Feedback**: Rate jawaban untuk improve AI learning
-5. **Escalate**: Hubungi HR untuk complex queries
+**Q: AI Assistant tidak memberikan jawaban yang tepat, apa yang harus dilakukan?**
+A:
+1. **Reformulate Question**: Coba dengan kata-kata yang berbeda
+2. **Add Context**: Berikan informasi lebih spesifik
+3. **Use Feedback**: Klik thumbs down dan berikan correction
+4. **Report Issue**: Gunakan "Report Problem" button
+5. **Contact Admin**: Hubungi Knowledge Manager untuk update content
+
+**Q: Bagaimana cara mengakses Knowledge Base?**
+A:
+1. **Direct Access**: Menu "Knowledge" > "Browse Articles"
+2. **Search Function**: Use search bar di top navigation
+3. **AI Assistant**: Tanya AI untuk find specific information
+4. **Category Browse**: Browse by department atau topic
+5. **Recent Articles**: Check recently updated content
+
+**Q: Bisakah saya contribute ke Knowledge Base?**
+A:
+1. **Submit Suggestions**: Use "Suggest Content" button
+2. **Feedback on Articles**: Rate dan comment pada articles
+3. **Report Outdated Info**: Flag content yang perlu update
+4. **Request New Content**: Submit request untuk new topics
+5. **Become Contributor**: Apply untuk content contributor role
+
+**Q: Bagaimana AI Assistant terintegrasi dengan sistem HR?**
+A:
+1. **Real-time Data**: AI akses data real-time dari sistem
+2. **Personalized Responses**: Jawaban disesuaikan dengan role dan department
+3. **Workflow Integration**: AI bisa guide through HR processes
+4. **Document Analysis**: Upload dan analyze HR documents
+5. **Proactive Suggestions**: AI memberikan suggestions berdasarkan context
+
+**Q: Apakah percakapan dengan AI Assistant private?**
+A:
+1. **Privacy Policy**: Percakapan disimpan untuk improvement purposes
+2. **No Personal Data Sharing**: Personal info tidak dibagikan
+3. **Anonymized Analytics**: Data digunakan untuk analytics dalam bentuk anonymous
+4. **Admin Access**: Knowledge managers bisa review untuk quality improvement
+5. **Data Retention**: Conversation history disimpan sesuai company policy
+
+**Q: Bagaimana cara AI Assistant belajar dan improve?**
+A:
+1. **User Feedback**: Dari thumbs up/down dan user corrections
+2. **Usage Analytics**: Dari pattern penggunaan dan search queries
+3. **Content Updates**: Saat knowledge base di-update
+4. **Admin Training**: Knowledge managers train AI dengan new scenarios
+5. **Machine Learning**: AI continuously learn dari interactions
 
 ---
 
